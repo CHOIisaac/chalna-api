@@ -371,12 +371,15 @@ htmlcov/
 .coverage
 test-results/
 
-# 🤖 AI/ML 관련
-models/
+# 🤖 AI/ML 관련 (훈련된 모델 파일들만)
 *.pkl
 *.joblib
 *.h5
 *.pb
+*.model
+*.weights
+model_checkpoints/
+trained_models/
 
 # 📱 모바일 앱 관련 (향후 확장)
 node_modules/
