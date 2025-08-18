@@ -1,0 +1,212 @@
+[project]
+name = "chalna-api"
+version = "0.1.0"
+description = "🎯 찰나(Chalna) - 경조사 관리 API"
+authors = [
+    {name = "CHOIisaac", email = "your.email@example.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+keywords = ["fastapi", "relationship", "event-management", "korean", "api"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+
+# 🚀 핵심 의존성
+dependencies = [
+    "fastapi[standard]>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "sqlalchemy>=2.0.23",
+    "psycopg2-binary>=2.9.9",
+    "alembic>=1.12.1",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.4.2",
+    "pydantic-settings>=2.0.3",
+]
+
+# 📊 선택적 의존성 그룹
+[project.optional-dependencies]
+# 🤖 AI/ML 기능
+ai = [
+    "openai>=1.3.5",
+    "langchain>=0.0.340",
+    "pandas>=2.1.3",
+    "numpy>=1.24.4",
+]
+
+# 📅 날짜/시간 처리
+datetime = [
+    "python-dateutil>=2.8.2",
+    "pytz>=2023.3",
+]
+
+# 🧪 테스트 및 개발
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "httpx>=0.25.2",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+]
+
+# 📝 문서화
+docs = [
+    "mkdocs>=1.5.3",
+    "mkdocs-material>=9.4.8",
+    "mkdocs-swagger-ui-tag>=0.6.0",
+]
+
+# 🚀 프로덕션 배포
+prod = [
+    "gunicorn>=21.2.0",
+    "psycopg2>=2.9.9",
+]
+
+# 📱 모든 기능 포함
+all = [
+    "chalna-api[ai,datetime,dev,docs,prod]"
+]
+
+[project.urls]
+Homepage = "https://github.com/CHOIisaac/chalna-api"
+Repository = "https://github.com/CHOIisaac/chalna-api.git"
+Issues = "https://github.com/CHOIisaac/chalna-api/issues"
+Documentation = "https://github.com/CHOIisaac/chalna-api#readme"
+
+# 📦 스크립트 명령어 (제거 - uv run 사용 권장)
+# [project.scripts]
+# 대신 uv run 명령어 사용:
+# uv run uvicorn main:app --reload
+# uv run fastapi dev main.py
+
+# 🛠️ 빌드 시스템
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# 📦 패키지 파일 선택  
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+include = [
+    "app/**/*.py",
+    "main.py",
+    "README.md",
+    "requirements.txt",
+]
+
+# 🎯 uv 설정
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1", 
+    "httpx>=0.25.2",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+]
+
+# 🔧 Ruff 설정 (빠른 린터)
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+
+# 🎨 Black 설정 (코드 포매터)
+[tool.black]
+target-version = ['py39']
+line-length = 88
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# 🔍 MyPy 설정 (타입 체크)
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sqlalchemy.*",
+    "alembic.*",
+    "passlib.*",
+    "jose.*",
+]
+ignore_missing_imports = true
+
+# 🧪 Pytest 설정
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
