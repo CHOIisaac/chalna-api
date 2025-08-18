@@ -32,9 +32,11 @@
 ## 🛠️ 기술 스택
 
 - **Backend**: FastAPI, Python 3.9+
-- **Database**: SQLAlchemy, PostgreSQL
+- **Package Manager**: uv (빠른 패키지 관리)
+- **Database**: SQLAlchemy, PostgreSQL (개발: SQLite)
 - **Authentication**: JWT
 - **Documentation**: Swagger UI, ReDoc
+- **Code Quality**: Ruff, Black, MyPy
 
 ## 📁 프로젝트 구조
 
@@ -55,22 +57,31 @@ chalna-api/
 
 ### 1. 클론 및 설치
 ```bash
-git clone https://github.com/[your-username]/chalna-api.git
+git clone https://github.com/CHOIisaac/chalna-api.git
 cd chalna-api
+
+# uv 사용 (권장 - 빠르고 현대적)
+uv sync
+
+# 또는 pip 사용
 pip install -r requirements.txt
 ```
 
 ### 2. 개발 서버 실행
 ```bash
-# FastAPI CLI 사용
-fastapi dev main.py
+# uv 사용 (권장)
+uv run fastapi dev main.py
 
-# 또는 Uvicorn 직접 실행
+# 또는 직접 실행
+uv run uvicorn main:app --reload
+
+# 또는 기존 방식
+fastapi dev main.py
 uvicorn main:app --reload
 ```
 
 ### 3. API 문서 확인
-- Swagger UI: http://localhost:8000/docs
+- Swagger UI: http://localhost:8000/swagger
 - ReDoc: http://localhost:8000/redoc
 
 ## 📊 데이터 모델
