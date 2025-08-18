@@ -408,4 +408,8 @@ mock_data/
 
 # 🔧 개발 도구 설정
 .vscode/settings.json
-.vscode/launch.json 
+.vscode/launch.json
+
+# ⚡ uv 패키지 매니저 관련
+.uv/
+uv.lock.d/ 
