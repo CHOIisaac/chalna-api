@@ -21,11 +21,44 @@ from app.api import (
 
 # FastAPI 앱 생성
 app = FastAPI(
-    title="찰나(Chalna) API",
-    description="인간관계 중심의 경조사 관리 API",
+    title="🎯 찰나(Chalna) API",
     version="0.1.0",
-    docs_url="/docs",
+    summary="경조사 관리의 새로운 패러다임",
+    terms_of_service="https://github.com/CHOIisaac/chalna-api/blob/main/LICENSE",
+    contact={
+        "name": "CHOIisaac",
+        "url": "https://github.com/CHOIisaac/chalna-api",
+        "email": "your.email@example.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://github.com/CHOIisaac/chalna-api/blob/main/LICENSE",
+    },
+    docs_url="/swagger",
     redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    openapi_tags=[
+        {
+            "name": "인증",
+            "description": "🔐 사용자 인증 및 토큰 관리",
+        },
+        {
+            "name": "사용자",
+            "description": "👤 사용자 정보 관리 및 프로필 설정",
+        },
+        {
+            "name": "경조사",
+            "description": "🎉 경조사 이벤트 관리 (결혼식, 장례식, 생일 등)",
+        },
+        {
+            "name": "선물관리",
+            "description": "🎁 주고받은 선물 및 축의금 관리",
+        },
+        {
+            "name": "관계관리",
+            "description": "🤝 인간관계 네트워크 및 친밀도 관리",
+        },
+    ],
 )
 
 # CORS 미들웨어 설정
@@ -84,7 +117,7 @@ async def startup_event():
     🚀 애플리케이션 시작 시 실행
     """
     print("🎯 찰나(Chalna) API 서버 시작!")
-    print("📖 API 문서: http://localhost:8000/docs")
+    print("📖 API 문서: http://localhost:8000/swagger")
 
 @app.on_event("shutdown")
 async def shutdown_event():
