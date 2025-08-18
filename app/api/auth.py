@@ -16,13 +16,49 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-@router.post("/login")
+@router.post(
+    "/login",
+    summary="사용자 로그인",
+    description="이메일과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.",
+    response_description="JWT 토큰과 사용자 정보",
+    responses={
+        200: {
+            "description": "로그인 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+                        "token_type": "bearer",
+                        "user": {
+                            "id": 1,
+                            "email": "user@example.com",
+                            "full_name": "홍길동"
+                        }
+                    }
+                }
+            }
+        },
+        401: {"description": "이메일 또는 비밀번호가 잘못됨"},
+    }
+)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
     """
     🔑 사용자 로그인
+
+    이메일과 비밀번호를 사용하여 로그인하고 JWT 토큰을 발급받습니다.
+    
+    **사용법:**
+    1. 이메일과 비밀번호 입력
+    2. JWT 토큰 발급
+    3. 이후 API 요청 시 Authorization 헤더에 토큰 포함
+    
+    **토큰 사용 예시:**
+    ```
+    Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+    ```
     """
     # 사용자 확인
     user = db.query(User).filter(User.email == form_data.username).first()
