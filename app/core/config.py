@@ -27,10 +27,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # 🗃️ 데이터베이스 설정
-    DATABASE_URL: str = "sqlite:///./chalna.db"  # 개발용 SQLite
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/chalna_db"  # 개발용도 PostgreSQL 사용
     DATABASE_URL_ASYNC: Optional[str] = None
     
-    # PostgreSQL 설정 (프로덕션용)
+    # PostgreSQL 설정
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "password"
@@ -45,11 +45,7 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v.startswith("postgresql"):
             return v
         
-        # 개발 환경에서는 SQLite 사용
-        if values.get("DEBUG", True):
-            return "sqlite:///./chalna.db"
-        
-        # 프로덕션 환경에서는 PostgreSQL 사용
+        # 개발/프로덕션 모두 PostgreSQL 사용
         return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}:{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
     
     # 🌐 CORS 설정
