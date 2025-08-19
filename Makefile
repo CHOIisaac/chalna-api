@@ -1,6 +1,6 @@
 # 🚀 찰나(Chalna) API - 개발 편의 명령어
 
-.PHONY: help install dev prod test lint format clean
+.PHONY: help install dev prod test lint format clean db-create db-reset db-info db-test
 
 help:  ## 📋 사용 가능한 명령어 표시
 	@echo "🎯 찰나(Chalna) API 개발 명령어"
@@ -34,5 +34,18 @@ clean:  ## 🧹 캐시 정리
 	uv cache clean
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
+
+# 🗃️ 데이터베이스 관리
+db-create:  ## 🏗️ 데이터베이스 테이블 생성
+	uv run python -c "from app.core.database import create_tables; create_tables(); print('✅ 테이블 생성 완료!')"
+
+db-reset:  ## 🔄 데이터베이스 초기화 (주의: 모든 데이터 삭제!)
+	uv run python -c "from app.core.database import reset_db; reset_db()"
+
+db-info:  ## 📊 데이터베이스 정보 확인
+	uv run python -c "from app.core.database import get_db_info; import json; print(json.dumps(get_db_info(), indent=2, ensure_ascii=False))"
+
+db-test:  ## 🔍 데이터베이스 연결 테스트
+	uv run python -c "from app.core.database import test_db_connection; print('✅ 연결 성공!' if test_db_connection() else '❌ 연결 실패!')"
 
 .DEFAULT_GOAL := help
