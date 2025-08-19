@@ -14,8 +14,10 @@ from app.core.config import settings
 # 데이터베이스 엔진 생성
 engine = create_engine(
     settings.DATABASE_URL,
-    # SQLite 특정 설정
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
+    # PostgreSQL 연결 풀 설정
+    pool_size=20,
+    max_overflow=0,
+    pool_pre_ping=True,
     echo=settings.DEBUG,  # 개발 환경에서 SQL 쿼리 로깅
 )
 
