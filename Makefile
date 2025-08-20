@@ -1,6 +1,6 @@
 # 🚀 찰나(Chalna) API - 개발 편의 명령어
 
-.PHONY: help install dev prod test lint format clean db-create db-reset db-info db-test
+.PHONY: help install dev prod test lint format clean db-create db-reset db-info db-test docker-build docker-run docker-dev docker-stop docker-clean docker-logs
 
 help:  ## 📋 사용 가능한 명령어 표시
 	@echo "🎯 찰나(Chalna) API 개발 명령어"
@@ -47,5 +47,31 @@ db-info:  ## 📊 데이터베이스 정보 확인
 
 db-test:  ## 🔍 데이터베이스 연결 테스트
 	uv run python -c "from app.core.database import test_db_connection; print('✅ 연결 성공!' if test_db_connection() else '❌ 연결 실패!')"
+
+# 🐳 도커 관리
+docker-build:  ## 🏗️ 도커 이미지 빌드
+	docker build -t chalna-api .
+
+docker-run:  ## 🚀 도커 컨테이너 실행 (프로덕션)
+	docker-compose up -d
+
+docker-dev:  ## 🛠️ 도커 개발 환경 실행 (로그 출력)
+	docker-compose up
+
+docker-stop:  ## ⏹️ 도커 컨테이너 중지
+	docker-compose down
+
+docker-clean:  ## 🧹 도커 리소스 정리
+	docker-compose down -v --remove-orphans
+	docker system prune -f
+
+docker-logs:  ## 📋 도커 로그 확인
+	docker-compose logs -f api
+
+docker-shell:  ## 🐚 도커 컨테이너에 쉘 접속
+	docker-compose exec api /bin/bash
+
+docker-admin:  ## 🛠️ PgAdmin 포함 전체 실행
+	docker-compose --profile admin up
 
 .DEFAULT_GOAL := help
