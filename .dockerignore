@@ -1,0 +1,118 @@
+# 🐳 도커 빌드 시 제외할 파일들
+# 빌드 속도 향상 및 이미지 크기 최적화
+
+# 🔧 개발 환경 파일들
+.env
+.env.local
+.env.*.local
+.env.docker
+
+# 📦 의존성 및 캐시
+node_modules/
+.npm
+.pnpm-store/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 🔄 가상환경
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# 🧪 테스트 관련
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# 🔍 린터 및 포매터
+.mypy_cache/
+.ruff_cache/
+.black/
+
+# 📝 IDE 및 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 🗂️ OS 생성 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 📊 Git 관련
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# 🐳 도커 관련
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 📋 문서 및 README
+README.md
+LICENSE
+CHANGELOG.md
+*.md
+
+# 🧪 테스트 파일
+test_*.py
+*_test.py
+tests/
+test_main.http
+
+# 📈 로그 파일
+*.log
+logs/
+
+# 🔧 설정 파일
+.pre-commit-config.yaml
+.github/
+.gitpod.yml
+
+# 📊 데이터베이스 파일
+*.db
+*.sqlite
+*.sqlite3
+
+# 🗂️ 임시 파일
+tmp/
+temp/
+.tmp/
+
+# 📸 업로드 파일 (개발용)
+uploads/*
+!uploads/.gitkeep
