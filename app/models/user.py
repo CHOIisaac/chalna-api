@@ -73,9 +73,9 @@ class User(Base):
     # 내가 생성한 이벤트들
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
     
-    # 내가 주고받은 선물들
-    gifts_given = relationship("Gift", foreign_keys="Gift.giver_id", back_populates="giver")
-    gifts_received = relationship("Gift", foreign_keys="Gift.receiver_id", back_populates="receiver")
+    # 내가 주고받은 경조사비들
+    ceremonial_money_given = relationship("CeremonialMoney", foreign_keys="CeremonialMoney.giver_id", back_populates="giver")
+    ceremonial_money_received = relationship("CeremonialMoney", foreign_keys="CeremonialMoney.receiver_id", back_populates="receiver")
     
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, name={self.full_name})>"
@@ -117,16 +117,16 @@ class User(Base):
     def update_stats(self, db):
         """통계 정보 업데이트"""
         from app.models.event import Event
-        from app.models.gift import Gift
+        from app.models.ceremonial_money import CeremonialMoney
         
         # 이벤트 수 업데이트
         self.total_events = db.query(Event).filter(Event.user_id == self.id).count()
         
-        # 선물 통계 업데이트
-        gifts_given = db.query(Gift).filter(Gift.giver_id == self.id).count()
-        gifts_received = db.query(Gift).filter(Gift.receiver_id == self.id).count()
+        # 경조사비 통계 업데이트
+        ceremonial_money_given = db.query(CeremonialMoney).filter(CeremonialMoney.giver_id == self.id).count()
+        ceremonial_money_received = db.query(CeremonialMoney).filter(CeremonialMoney.receiver_id == self.id).count()
         
-        self.total_gifts_given = gifts_given
-        self.total_gifts_received = gifts_received
+        self.total_gifts_given = ceremonial_money_given
+        self.total_gifts_received = ceremonial_money_received
         
         db.commit() 
