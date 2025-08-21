@@ -120,7 +120,7 @@ class Event(Base):
     # 🔗 관계 설정
     user = relationship("User", back_populates="events")
     relationship_info = relationship("Relationship", back_populates="events")
-    gifts = relationship("Gift", back_populates="event")
+    ceremonial_money = relationship("CeremonialMoney", back_populates="event")
     
     def __repr__(self):
         return f"<Event(id={self.id}, title={self.title}, type={self.event_type}, date={self.event_date})>"
