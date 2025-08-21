@@ -15,7 +15,7 @@ from app.api import (
     auth_router,
     users_router,
     events_router,
-    gifts_router,
+    ceremonial_money_router,
     relationships_router,
 )
 
@@ -74,7 +74,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["인증"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["사용자"])
 app.include_router(events_router, prefix="/api/v1/events", tags=["경조사"])
-app.include_router(gifts_router, prefix="/api/v1/gifts", tags=["선물관리"])
+app.include_router(ceremonial_money_router, prefix="/api/v1/ceremonial-money", tags=["경조사비관리"])
 app.include_router(relationships_router, prefix="/api/v1/relationships", tags=["관계관리"])
 
 # 루트 엔드포인트
