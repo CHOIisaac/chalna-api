@@ -95,7 +95,7 @@ class Relationship(Base):
     # 🔗 관계 설정
     user = relationship("User", back_populates="relationships")
     events = relationship("Event", back_populates="relationship")
-    gifts = relationship("Gift", back_populates="relationship")
+    ceremonial_money = relationship("CeremonialMoney", back_populates="relationship_info")
     
     def __repr__(self):
         return f"<Relationship(id={self.id}, user_id={self.user_id}, contact={self.contact_name}, type={self.relationship_type})>"
@@ -225,17 +225,17 @@ class Relationship(Base):
     def update_stats(self, db):
         """통계 정보 업데이트"""
         from app.models.event import Event
-        from app.models.gift import Gift
+        from app.models.ceremonial_money import CeremonialMoney
         
         # 이벤트 수 업데이트
         self.total_events = db.query(Event).filter(Event.relationship_id == self.id).count()
         
-        # 선물 통계 업데이트
-        gifts_given = db.query(Gift).filter(Gift.relationship_id == self.id, Gift.giver_id == self.user_id).count()
-        gifts_received = db.query(Gift).filter(Gift.relationship_id == self.id, Gift.receiver_id == self.user_id).count()
+        # 경조사비 통계 업데이트
+        ceremonial_money_given = db.query(CeremonialMoney).filter(CeremonialMoney.relationship_id == self.id, CeremonialMoney.giver_id == self.user_id).count()
+        ceremonial_money_received = db.query(CeremonialMoney).filter(CeremonialMoney.relationship_id == self.id, CeremonialMoney.receiver_id == self.user_id).count()
         
-        self.total_gifts_given = gifts_given
-        self.total_gifts_received = gifts_received
+        self.total_gifts_given = ceremonial_money_given
+        self.total_gifts_received = ceremonial_money_received
         
         # 친밀도 점수 재계산
         self.calculate_intimacy_score(db)
