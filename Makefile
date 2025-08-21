@@ -37,16 +37,20 @@ clean:  ## 🧹 캐시 정리
 
 # 🗃️ 데이터베이스 관리
 db-create:  ## 🏗️ 데이터베이스 테이블 생성
-	uv run python -c "from app.core.database import create_tables; create_tables(); print('✅ 테이블 생성 완료!')"
+	uv run python create_tables.py
+
+db-create-samples:  ## 🌱 데이터베이스 테이블 생성 + 샘플 데이터
+	uv run python create_tables.py --with-samples
 
 db-reset:  ## 🔄 데이터베이스 초기화 (주의: 모든 데이터 삭제!)
-	uv run python -c "from app.core.database import reset_db; reset_db()"
+	uv run python -c "from app.core.database import Base, engine; Base.metadata.drop_all(bind=engine); print('🗑️ 모든 테이블 삭제 완료!')"
+	uv run python create_tables.py
 
 db-info:  ## 📊 데이터베이스 정보 확인
-	uv run python -c "from app.core.database import get_db_info; import json; print(json.dumps(get_db_info(), indent=2, ensure_ascii=False))"
+	uv run python -c "from app.core.config import settings; print(f'📍 Database: {settings.DATABASE_URL}'); print(f'🔧 Debug: {settings.DEBUG}')"
 
 db-test:  ## 🔍 데이터베이스 연결 테스트
-	uv run python -c "from app.core.database import test_db_connection; print('✅ 연결 성공!' if test_db_connection() else '❌ 연결 실패!')"
+	uv run python -c "from app.core.database import engine; engine.connect().close(); print('✅ 데이터베이스 연결 성공!')"
 
 # 🐳 도커 관리
 docker-build:  ## 🏗️ 도커 이미지 빌드
