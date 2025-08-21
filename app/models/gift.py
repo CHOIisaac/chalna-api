@@ -56,21 +56,27 @@ class Gift(Base):
     
     # 🎁 선물 정보
     gift_type = Column(Enum(GiftType), nullable=False)
-    name = Column(String(200), nullable=False)
+    title = Column(String(200), nullable=False)  # name -> title로 변경
     description = Column(Text)
+    brand = Column(String(100))  # 브랜드 필드 추가
     
     # 💰 금액 정보
     amount = Column(Float, nullable=False)
     currency = Column(String(10), default="KRW")
     
+    # 📅 날짜 정보  
+    given_date = Column(DateTime, nullable=False)  # 주고받은 날짜 (필수)
+    
     # 🛒 구매 정보
     purchase_date = Column(DateTime)
     purchase_location = Column(String(200))
+    purchase_method = Column(String(50))  # 구매 방법 추가
     receipt_url = Column(String(500))
     
     # 📦 배송 정보
     delivery_date = Column(DateTime)
     delivery_method = Column(String(100))  # 직접전달, 택배, 우편 등
+    delivery_address = Column(String(500))  # 배송지 추가
     tracking_number = Column(String(100))
     
     # 🎯 상태 정보
@@ -79,6 +85,7 @@ class Gift(Base):
     
     # 📝 메모 및 기록
     memo = Column(Text)
+    private_notes = Column(Text)  # 개인 메모 (스키마와 통일)
     occasion = Column(String(100))  # 선물 계기
     
     # 📸 미디어 정보
@@ -89,13 +96,16 @@ class Gift(Base):
     category = Column(String(50))
     
     # 📊 평가 정보
-    satisfaction_rating = Column(Integer)  # 1-5 점수
+    satisfaction_score = Column(Integer)  # 만족도 1-5 점수 (스키마와 통일)
+    appropriateness_score = Column(Integer)  # 적절성 1-5 점수 (스키마와 통일)
+    satisfaction_rating = Column(Integer)  # 1-5 점수 (기존 호환)
     reaction_rating = Column(Integer)  # 상대방 반응 1-5 점수
     
     # 🔄 답례 정보
     is_reciprocal = Column(Boolean, default=False)  # 답례인지 여부
     original_gift_id = Column(Integer, ForeignKey("gifts.id"))  # 원본 선물 ID
-    expects_reciprocation = Column(Boolean, default=True)  # 답례 기대 여부
+    reciprocal_required = Column(Boolean, default=False)  # 답례 필요 여부
+    reciprocal_deadline = Column(DateTime)  # 답례 마감일
     
     # 🔔 리마인더 설정
     reminder_enabled = Column(Boolean, default=False)
@@ -116,7 +126,7 @@ class Gift(Base):
     original_gift = relationship("Gift", remote_side=[id], backref="reciprocal_gifts")
     
     def __repr__(self):
-        return f"<Gift(id={self.id}, name={self.name}, amount={self.amount}, direction={self.direction})>"
+        return f"<Gift(id={self.id}, title={self.title}, amount={self.amount}, direction={self.direction})>"
     
     def to_dict(self):
         """모델을 딕셔너리로 변환"""
@@ -128,28 +138,36 @@ class Gift(Base):
             "giver_id": self.giver_id,
             "receiver_id": self.receiver_id,
             "gift_type": self.gift_type.value,
-            "name": self.name,
+            "title": self.title,  # name -> title 변경
             "description": self.description,
+            "brand": self.brand,  # 추가
             "amount": self.amount,
             "currency": self.currency,
+            "given_date": self.given_date,  # 추가
             "purchase_date": self.purchase_date,
             "purchase_location": self.purchase_location,
+            "purchase_method": self.purchase_method,  # 추가
             "receipt_url": self.receipt_url,
             "delivery_date": self.delivery_date,
             "delivery_method": self.delivery_method,
+            "delivery_address": self.delivery_address,  # 추가
             "tracking_number": self.tracking_number,
             "status": self.status.value,
             "direction": self.direction.value,
             "memo": self.memo,
+            "private_notes": self.private_notes,  # 추가
             "occasion": self.occasion,
             "photos": self.photos,
             "tags": self.tags,
             "category": self.category,
+            "satisfaction_score": self.satisfaction_score,  # 추가
+            "appropriateness_score": self.appropriateness_score,  # 추가
             "satisfaction_rating": self.satisfaction_rating,
             "reaction_rating": self.reaction_rating,
             "is_reciprocal": self.is_reciprocal,
             "original_gift_id": self.original_gift_id,
-            "expects_reciprocation": self.expects_reciprocation,
+            "reciprocal_required": self.reciprocal_required,  # 변경
+            "reciprocal_deadline": self.reciprocal_deadline,  # 추가
             "reminder_enabled": self.reminder_enabled,
             "reminder_date": self.reminder_date,
             "created_at": self.created_at,
@@ -190,7 +208,7 @@ class Gift(Base):
     
     def needs_reciprocation(self, db):
         """답례가 필요한지 확인"""
-        if not self.expects_reciprocation or self.direction != GiftDirection.RECEIVED:
+        if not self.reciprocal_required or self.direction != GiftDirection.RECEIVED:
             return False
         
         # 이미 답례를 했는지 확인
@@ -238,7 +256,7 @@ class Gift(Base):
         if self.direction != GiftDirection.RECEIVED:
             return ""
         
-        gift_name = self.name or "선물"
+        gift_name = self.title or "선물"
         
         if self.gift_type == GiftType.CASH:
             return f"축의금 {self.amount:,}원 감사히 받았습니다. 소중한 마음 정말 고맙습니다."
