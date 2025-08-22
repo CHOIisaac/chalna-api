@@ -62,7 +62,7 @@ async def get_ceremonial_money(
             or_(
                 CeremonialMoney.title.ilike(search_pattern),
                 CeremonialMoney.description.ilike(search_pattern),
-                CeremonialMoney.brand.ilike(search_pattern)
+                CeremonialMoney.occasion.ilike(search_pattern)
             )
         )
     
@@ -123,11 +123,9 @@ async def get_financial_transactions(
             amount=money.amount,
             direction=money.direction,
             transaction_date=money.given_date,
-            category=money.category,
             event_title=money.event.title if money.event else None,
             relationship_name=money.relationship_info.contact_name if money.relationship_info else None,
             memo=money.memo
-            # UI 관련 필드들은 프론트엔드에서 처리
         )
         transactions.append(transaction)
     
@@ -172,12 +170,12 @@ async def get_financial_summary(
     income_by_event_type = {}
     
     for money in ceremonial_money:
-        category = money.category or "기타"
+        money_type = money.ceremonial_money_type.value or "기타"
         
         if money.direction == CeremonialMoneyDirection.RECEIVED:
-            income_by_category[category] = income_by_category.get(category, 0) + money.amount
+            income_by_category[money_type] = income_by_category.get(money_type, 0) + money.amount
         else:
-            expense_by_category[category] = expense_by_category.get(category, 0) + money.amount
+            expense_by_category[money_type] = expense_by_category.get(money_type, 0) + money.amount
         
         if money.event:
             event_type = money.event.event_type.value
