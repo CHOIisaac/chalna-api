@@ -16,13 +16,7 @@ class CeremonialMoneyType(enum.Enum):
     """경조사비 유형"""
     CONGRATULATORY = "congratulatory"         # 축의금 (결혼식, 돌잔치 등)
     CONDOLENCE = "condolence"                 # 조의금 (장례식)
-    CASH_GIFT = "cash_gift"                   # 현금 선물 (생일 등)
-    GIFT_CARD = "gift_card"                   # 상품권
-    PHYSICAL_GIFT = "physical_gift"           # 실물 선물
-    FLOWER_ARRANGEMENT = "flower_arrangement" # 화환
-    FOOD_CATERING = "food_catering"          # 음식/케이터링
-    SERVICE = "service"                       # 서비스
-    OTHER = "other"                           # 기타
+    OTHER = "other"                           # 기타 (선물, 생일축하 등)
 
 
 class CeremonialMoneyDirection(enum.Enum):
@@ -51,7 +45,6 @@ class CeremonialMoney(Base):
     ceremonial_money_type = Column(Enum(CeremonialMoneyType), nullable=False)
     title = Column(String(200), nullable=False)
     description = Column(Text)
-    brand = Column(String(100))  # 브랜드/상호명
     
     # 💰 금액 정보
     amount = Column(Float, nullable=False)
@@ -60,49 +53,18 @@ class CeremonialMoney(Base):
     # 📅 날짜 정보  
     given_date = Column(DateTime, nullable=False)  # 주고받은 날짜
     
-    # 🛒 구매 정보
-    purchase_date = Column(DateTime)
-    purchase_location = Column(String(200))
-    purchase_method = Column(String(50))  # 구매 방법
-    receipt_url = Column(String(500))
-    
-    # 📦 배송 정보
-    delivery_date = Column(DateTime)
-    delivery_method = Column(String(100))  # 직접전달, 택배, 우편 등
-    delivery_address = Column(String(500))  # 배송지
-    tracking_number = Column(String(100))
-    
     # 🎯 방향 정보
     direction = Column(Enum(CeremonialMoneyDirection), nullable=False)
     
     # 📝 메모 및 기록
     memo = Column(Text)
-    private_notes = Column(Text)  # 개인 메모
-    occasion = Column(String(100))  # 경조사 계기
-    
-    # 📸 미디어 정보
-    photos = Column(Text)  # 사진 URL들 (JSON 형태)
-    receipts = Column(Text)  # 영수증 URL들 (JSON 형태)
-    
-    # 🏷️ 태그 및 분류
-    tags = Column(Text)  # 태그들 (JSON 형태)
-    category = Column(String(50))
-    
-    # 📊 평가 정보
-    satisfaction_score = Column(Integer)  # 만족도 1-5 점수
-    appropriateness_score = Column(Integer)  # 적절성 1-5 점수
-    satisfaction_rating = Column(Integer)  # 1-5 점수 (기존 호환)
-    reaction_rating = Column(Integer)  # 상대방 반응 1-5 점수
+    occasion = Column(String(100))  # 경조사 계기 (결혼식, 장례식 등)
     
     # 🔄 답례 정보
     is_reciprocal = Column(Boolean, default=False)  # 답례인지 여부
     original_gift_id = Column(Integer, ForeignKey("ceremonial_money.id"))  # 원본 경조사비 ID
     reciprocal_required = Column(Boolean, default=False)  # 답례 필요 여부
     reciprocal_deadline = Column(DateTime)  # 답례 마감일
-    
-    # 🔔 리마인더 설정
-    reminder_enabled = Column(Boolean, default=False)
-    reminder_date = Column(DateTime)
     
     # 🕐 타임스탬프
     created_at = Column(DateTime, default=func.now())
@@ -133,46 +95,19 @@ class CeremonialMoney(Base):
             "ceremonial_money_type": self.ceremonial_money_type.value,
             "title": self.title,
             "description": self.description,
-            "brand": self.brand,
             "amount": self.amount,
             "currency": self.currency,
             "given_date": self.given_date,
-            "purchase_date": self.purchase_date,
-            "purchase_location": self.purchase_location,
-            "purchase_method": self.purchase_method,
-            "receipt_url": self.receipt_url,
-            "delivery_date": self.delivery_date,
-            "delivery_method": self.delivery_method,
-            "delivery_address": self.delivery_address,
-            "tracking_number": self.tracking_number,
             "direction": self.direction.value,
             "memo": self.memo,
-            "private_notes": self.private_notes,
             "occasion": self.occasion,
-            "photos": self.photos,
-            "receipts": self.receipts,
-            "tags": self.tags,
-            "category": self.category,
-            "satisfaction_score": self.satisfaction_score,
-            "appropriateness_score": self.appropriateness_score,
-            "satisfaction_rating": self.satisfaction_rating,
-            "reaction_rating": self.reaction_rating,
             "is_reciprocal": self.is_reciprocal,
             "original_gift_id": self.original_gift_id,
             "reciprocal_required": self.reciprocal_required,
             "reciprocal_deadline": self.reciprocal_deadline,
-            "reminder_enabled": self.reminder_enabled,
-            "reminder_date": self.reminder_date,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
-    
-    @property
-    def is_overdue(self):
-        """배송 지연 여부"""
-        if self.delivery_date:
-            return func.now() > self.delivery_date
-        return False
     
     @property
     def days_since_given(self):
@@ -181,17 +116,6 @@ class CeremonialMoney(Base):
             delta = func.now() - self.given_date
             return delta.days
         return None
-    
-    @property
-    def is_expensive(self):
-        """고액 경조사비인지 여부 (10만원 이상)"""
-        return self.amount >= 100000
-    
-    @property
-    def is_recent(self):
-        """최근 경조사비인지 여부 (30일 이내)"""
-        days_since = self.days_since_given
-        return days_since is not None and days_since <= 30
     
     def get_reciprocal_gifts(self, db):
         """관련 답례 경조사비 조회"""
@@ -266,8 +190,6 @@ class CeremonialMoney(Base):
             return f"축의금 {self.amount:,}원 감사히 받았습니다. 소중한 마음 정말 고맙습니다."
         elif self.ceremonial_money_type == CeremonialMoneyType.CONDOLENCE:
             return f"조의금 {self.amount:,}원 감사히 받았습니다. 위로의 마음에 깊이 감사드립니다."
-        elif self.ceremonial_money_type in [CeremonialMoneyType.CASH_GIFT, CeremonialMoneyType.PHYSICAL_GIFT]:
-            return f"{title} 정말 감사합니다. 소중히 잘 쓰겠습니다."
         else:
             return f"{title} 감사히 받았습니다."
     
