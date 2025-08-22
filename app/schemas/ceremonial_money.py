@@ -26,7 +26,6 @@ class CeremonialMoneyBase(BaseModel):
     
     # 📝 상세 정보
     description: Optional[str] = Field(None, max_length=1000, description="경조사비 설명")
-    brand: Optional[str] = Field(None, max_length=100, description="브랜드/상호명")
     
     # 📅 날짜 정보
     given_date: datetime = Field(..., description="주고받은 날짜")
@@ -37,22 +36,11 @@ class CeremonialMoneyBase(BaseModel):
     reciprocal_required: bool = Field(False, description="답례 필요 여부")
     reciprocal_deadline: Optional[datetime] = Field(None, description="답례 마감일")
     
-    # 📍 구매/수령 정보
-    purchase_location: Optional[str] = Field(None, max_length=200, description="구매처")
-    purchase_method: Optional[str] = Field(None, max_length=50, description="구매 방법")
-    delivery_address: Optional[str] = Field(None, max_length=500, description="배송지")
-    
-    # 📊 평가 정보
-    satisfaction_score: Optional[int] = Field(None, ge=1, le=5, description="만족도 (1-5점)")
-    appropriateness_score: Optional[int] = Field(None, ge=1, le=5, description="적절성 (1-5점)")
-    
     # 📝 메모
     memo: Optional[str] = Field(None, max_length=1000, description="메모")
-    private_notes: Optional[str] = Field(None, max_length=1000, description="개인 메모")
     
     # 🏷️ 분류
-    category: Optional[str] = Field(None, max_length=50, description="카테고리")
-    tags: Optional[str] = Field(None, max_length=500, description="태그 (JSON 형태)")
+    occasion: Optional[str] = Field(None, max_length=100, description="경조사 계기")
 
     @validator("reciprocal_deadline")
     def validate_reciprocal_deadline(cls, v, values):
@@ -62,16 +50,7 @@ class CeremonialMoneyBase(BaseModel):
                 raise ValueError("답례 마감일은 받은 날짜보다 늦어야 합니다")
         return v
 
-    @validator("amount")
-    def validate_amount(cls, v, values):
-        """금액은 경조사비 유형에 따라 적절한 범위여야 함"""
-        if v > 0:
-            ceremonial_money_type = values.get("ceremonial_money_type")
-            if ceremonial_money_type == CeremonialMoneyType.CONGRATULATORY and v < 30000:
-                raise ValueError("결혼식 축의금은 최소 3만원 이상을 권장합니다")
-            elif ceremonial_money_type == CeremonialMoneyType.CONDOLENCE and v < 10000:
-                raise ValueError("장례식 조의금은 최소 1만원 이상을 권장합니다")
-        return v
+
 
 
 class CeremonialMoneyCreate(CeremonialMoneyBase):
@@ -94,7 +73,7 @@ class CeremonialMoneyCreate(CeremonialMoneyBase):
                 "event_id": 1,
                 "relationship_id": 5,
                 "memo": "결혼식장에서 직접 전달",
-                "category": "wedding_money"
+                "occasion": "결혼식"
             }
         }
 
@@ -110,26 +89,14 @@ class CeremonialMoneyUpdate(BaseModel):
     currency: Optional[str] = Field(None, max_length=10)
     
     description: Optional[str] = Field(None, max_length=1000)
-    brand: Optional[str] = Field(None, max_length=100)
-    
     given_date: Optional[datetime] = None
     
     is_reciprocal: Optional[bool] = None
     reciprocal_required: Optional[bool] = None
     reciprocal_deadline: Optional[datetime] = None
     
-    purchase_location: Optional[str] = Field(None, max_length=200)
-    purchase_method: Optional[str] = Field(None, max_length=50)
-    delivery_address: Optional[str] = Field(None, max_length=500)
-    
-    satisfaction_score: Optional[int] = Field(None, ge=1, le=5)
-    appropriateness_score: Optional[int] = Field(None, ge=1, le=5)
-    
     memo: Optional[str] = Field(None, max_length=1000)
-    private_notes: Optional[str] = Field(None, max_length=1000)
-    
-    category: Optional[str] = Field(None, max_length=50)
-    tags: Optional[str] = Field(None, max_length=500)
+    occasion: Optional[str] = Field(None, max_length=100)
 
 
 class CeremonialMoneyInDB(CeremonialMoneyBase):
@@ -141,10 +108,6 @@ class CeremonialMoneyInDB(CeremonialMoneyBase):
     relationship_id: Optional[int] = None
     giver_id: Optional[int] = None
     receiver_id: Optional[int] = None
-    
-    # 📸 미디어 정보
-    photos: Optional[str] = None
-    receipts: Optional[str] = None
     
     # 🕐 타임스탬프
     created_at: datetime
@@ -199,13 +162,9 @@ class FinancialTransactionBase(BaseModel):
     amount: float
     direction: CeremonialMoneyDirection  # 입금(received) / 출금(given)
     transaction_date: datetime
-    category: Optional[str] = None
     event_title: Optional[str] = None
     relationship_name: Optional[str] = None
     memo: Optional[str] = None
-    
-    # UI 관련 필드들은 프론트엔드에서 처리
-    # transaction_color, transaction_icon 제거
 
 
 class FinancialSummary(BaseModel):
@@ -245,13 +204,13 @@ class FinancialSummary(BaseModel):
                 "period_end": "2024-03-31T23:59:59",
                 "period_type": "monthly",
                 "expense_by_category": {
-                    "wedding_money": 300000,
-                    "birthday_money": 100000,
-                    "funeral_money": 50000
+                    "congratulatory": 300000,
+                    "other": 100000,
+                    "condolence": 50000
                 },
                 "income_by_category": {
-                    "birthday_money": 150000,
-                    "wedding_money": 50000
+                    "other": 150000,
+                    "congratulatory": 50000
                 }
             }
         }
@@ -305,10 +264,10 @@ class CeremonialMoneyQuickAdd(BaseModel):
         json_schema_extra = {
             "example": {
                 "title": "김영희 생일선물",
-                "ceremonial_money_type": "cash_gift",
+                "ceremonial_money_type": "other",
                 "direction": "given",
                 "amount": 50000,
-                "memo": "현금 선물"
+                "memo": "생일 축하금"
             }
         }
 
