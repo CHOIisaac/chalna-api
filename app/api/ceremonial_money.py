@@ -16,12 +16,13 @@ from app.core.security import get_current_user
 from app.models.ceremonial_money import CeremonialMoney, CeremonialMoneyType, CeremonialMoneyDirection
 from app.models.user import User
 from app.models.event import Event
-from app.models.relationship import Relationship
+
 from app.schemas.ceremonial_money import (
     CeremonialMoneyCreate, CeremonialMoneyUpdate, CeremonialMoneyResponse, CeremonialMoneyInDB,
     FinancialTransactionBase, FinancialSummary, 
     MonthlyFinancialReport, YearlyFinancialReport,
-    CeremonialMoneyQuickAdd, PendingReciprocals, CeremonialMoneyRecommendation
+    CeremonialMoneyQuickAdd, PendingReciprocals, CeremonialMoneyRecommendation,
+    ContactSummary, ContactListResponse
 )
 
 router = APIRouter()
@@ -407,3 +408,167 @@ async def delete_ceremonial_money(
     db.commit()
     
     return {"message": "경조사비가 성공적으로 삭제되었습니다"}
+
+
+# 🤝 연락처별 경조사비 관리 API
+@router.get("/contacts", response_model=ContactListResponse)
+async def get_contacts_summary(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """👥 전체 연락처별 경조사비 요약 조회"""
+    
+    # 사용자의 모든 경조사비 조회
+    ceremonial_money_list = db.query(CeremonialMoney).filter(
+        CeremonialMoney.user_id == current_user.id
+    ).all()
+    
+    # 연락처별로 그룹화
+    contacts_dict = {}
+    total_given = 0
+    total_received = 0
+    
+    for money in ceremonial_money_list:
+        contact_name = money.contact_name
+        
+        if contact_name not in contacts_dict:
+            contacts_dict[contact_name] = {
+                "contact_name": contact_name,
+                "contact_phone": money.contact_phone,
+                "relationship_type": money.relationship_type,
+                "total_given": 0,
+                "total_received": 0,
+                "given_count": 0,
+                "received_count": 0,
+                "last_given_date": None,
+                "last_received_date": None,
+                "recent_transactions": []
+            }
+        
+        contact = contacts_dict[contact_name]
+        
+        if money.direction == CeremonialMoneyDirection.GIVEN:
+            contact["total_given"] += money.amount
+            contact["given_count"] += 1
+            total_given += money.amount
+            if not contact["last_given_date"] or money.given_date > contact["last_given_date"]:
+                contact["last_given_date"] = money.given_date
+        else:
+            contact["total_received"] += money.amount
+            contact["received_count"] += 1
+            total_received += money.amount
+            if not contact["last_received_date"] or money.given_date > contact["last_received_date"]:
+                contact["last_received_date"] = money.given_date
+        
+        # 최근 거래 내역 추가 (최대 5개)
+        transaction = {
+            "id": money.id,
+            "title": money.title,
+            "amount": money.amount,
+            "direction": money.direction.value,
+            "date": money.given_date,
+            "event_type": money.event.event_type.value if money.event else None
+        }
+        contact["recent_transactions"].append(transaction)
+    
+    # 연락처별 데이터 정리
+    contacts = []
+    for contact_data in contacts_dict.values():
+        # 최근 거래 내역 정렬 (최신순) 및 최대 5개로 제한
+        contact_data["recent_transactions"] = sorted(
+            contact_data["recent_transactions"], 
+            key=lambda x: x["date"], 
+            reverse=True
+        )[:5]
+        
+        # 수지 계산
+        contact_data["balance"] = contact_data["total_received"] - contact_data["total_given"]
+        
+        contacts.append(ContactSummary(**contact_data))
+    
+    # 수지 순으로 정렬 (받은 것이 많은 순)
+    contacts.sort(key=lambda x: x.balance, reverse=True)
+    
+    return ContactListResponse(
+        contacts=contacts,
+        total_contacts=len(contacts),
+        total_given_amount=total_given,
+        total_received_amount=total_received,
+        overall_balance=total_received - total_given
+    )
+
+
+@router.get("/contacts/{contact_name}", response_model=ContactSummary)
+async def get_contact_summary(
+    contact_name: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """👤 특정 연락처의 경조사비 상세 내역 조회"""
+    
+    # 해당 연락처와의 모든 경조사비 조회
+    ceremonial_money_list = db.query(CeremonialMoney).filter(
+        CeremonialMoney.user_id == current_user.id,
+        CeremonialMoney.contact_name == contact_name
+    ).order_by(CeremonialMoney.given_date.desc()).all()
+    
+    if not ceremonial_money_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"'{contact_name}'님과의 경조사비 내역을 찾을 수 없습니다"
+        )
+    
+    # 통계 계산
+    total_given = 0
+    total_received = 0
+    given_count = 0
+    received_count = 0
+    last_given_date = None
+    last_received_date = None
+    recent_transactions = []
+    
+    # 연락처 정보 (첫 번째 기록에서 가져오기)
+    first_record = ceremonial_money_list[0]
+    contact_phone = first_record.contact_phone
+    relationship_type = first_record.relationship_type
+    
+    for money in ceremonial_money_list:
+        if money.direction == CeremonialMoneyDirection.GIVEN:
+            total_given += money.amount
+            given_count += 1
+            if not last_given_date or money.given_date > last_given_date:
+                last_given_date = money.given_date
+        else:
+            total_received += money.amount
+            received_count += 1
+            if not last_received_date or money.given_date > last_received_date:
+                last_received_date = money.given_date
+        
+        # 최근 거래 내역
+        transaction = {
+            "id": money.id,
+            "title": money.title,
+            "amount": money.amount,
+            "direction": money.direction.value,
+            "date": money.given_date,
+            "event_type": money.event.event_type.value if money.event else None,
+            "memo": money.memo
+        }
+        recent_transactions.append(transaction)
+    
+    # 최근 거래 내역은 최대 10개로 제한
+    recent_transactions = recent_transactions[:10]
+    
+    return ContactSummary(
+        contact_name=contact_name,
+        contact_phone=contact_phone,
+        relationship_type=relationship_type,
+        total_given=total_given,
+        total_received=total_received,
+        balance=total_received - total_given,
+        given_count=given_count,
+        received_count=received_count,
+        last_given_date=last_given_date,
+        last_received_date=last_received_date,
+        recent_transactions=recent_transactions
+    )
