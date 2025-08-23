@@ -9,7 +9,7 @@ from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
-from app.models.ceremonial_money import CeremonialMoneyType, CeremonialMoneyDirection
+from app.models.ceremonial_money import CeremonialMoneyDirection
 
 
 class CeremonialMoneyBase(BaseModel):
@@ -17,8 +17,12 @@ class CeremonialMoneyBase(BaseModel):
     
     # 💰 기본 정보
     title: str = Field(..., min_length=1, max_length=200, description="경조사비/선물 제목")
-    ceremonial_money_type: CeremonialMoneyType = Field(..., description="경조사비 유형")
     direction: CeremonialMoneyDirection = Field(..., description="주고받은 방향")
+    
+    # 👤 상대방 정보
+    contact_name: str = Field(..., min_length=1, max_length=100, description="상대방 이름")
+    contact_phone: Optional[str] = Field(None, max_length=20, description="상대방 연락처")
+    relationship_type: Optional[str] = Field(None, max_length=50, description="관계 (친구, 가족, 동료 등)")
     
     # 💰 금액 정보
     amount: float = Field(..., ge=0, description="금액")
@@ -332,5 +336,86 @@ class CeremonialMoneyRecommendation(BaseModel):
                 "confidence_score": 0.85,
                 "past_money_given": [],
                 "past_money_received": []
+            }
+        }
+
+
+class ContactSummary(BaseModel):
+    """👤 특정 인물별 경조사비 주고받은 내역 요약"""
+    
+    contact_name: str = Field(..., description="상대방 이름")
+    contact_phone: Optional[str] = Field(None, description="상대방 연락처")
+    relationship_type: Optional[str] = Field(None, description="관계")
+    
+    # 💰 금액 통계
+    total_given: float = Field(0, description="내가 준 총 금액")
+    total_received: float = Field(0, description="내가 받은 총 금액")
+    balance: float = Field(0, description="수지 (받은 것 - 준 것)")
+    
+    # 📊 횟수 통계
+    given_count: int = Field(0, description="내가 준 횟수")
+    received_count: int = Field(0, description="내가 받은 횟수")
+    
+    # 📅 최근 기록
+    last_given_date: Optional[datetime] = Field(None, description="마지막으로 준 날짜")
+    last_received_date: Optional[datetime] = Field(None, description="마지막으로 받은 날짜")
+    
+    # 📋 상세 내역
+    recent_transactions: List[dict] = Field([], description="최근 거래 내역 (최대 5개)")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "contact_name": "김철수",
+                "contact_phone": "010-1234-5678",
+                "relationship_type": "친구",
+                "total_given": 300000,
+                "total_received": 250000,
+                "balance": -50000,
+                "given_count": 3,
+                "received_count": 2,
+                "last_given_date": "2024-01-15T10:00:00",
+                "last_received_date": "2023-12-10T14:00:00",
+                "recent_transactions": [
+                    {
+                        "id": 123,
+                        "title": "김철수 결혼식",
+                        "amount": 200000,
+                        "direction": "given",
+                        "date": "2024-01-15T10:00:00",
+                        "event_type": "결혼식"
+                    }
+                ]
+            }
+        }
+
+
+class ContactListResponse(BaseModel):
+    """👥 전체 연락처별 경조사비 요약 목록"""
+    
+    contacts: List[ContactSummary] = Field([], description="연락처별 요약 목록")
+    total_contacts: int = Field(0, description="총 연락처 수")
+    
+    # 💰 전체 통계
+    total_given_amount: float = Field(0, description="전체 준 금액")
+    total_received_amount: float = Field(0, description="전체 받은 금액")
+    overall_balance: float = Field(0, description="전체 수지")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "contacts": [
+                    {
+                        "contact_name": "김철수",
+                        "relationship_type": "친구",
+                        "total_given": 300000,
+                        "total_received": 250000,
+                        "balance": -50000
+                    }
+                ],
+                "total_contacts": 15,
+                "total_given_amount": 2500000,
+                "total_received_amount": 2200000,
+                "overall_balance": -300000
             }
         }
