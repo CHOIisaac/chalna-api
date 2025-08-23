@@ -54,7 +54,6 @@ class Event(Base):
     # 🔑 기본 정보
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    relationship_id = Column(Integer, ForeignKey("relationships.id"))
     
     # 🎉 이벤트 정보
     title = Column(String(200), nullable=False)
@@ -119,7 +118,6 @@ class Event(Base):
     
     # 🔗 관계 설정
     user = relationship("User", back_populates="events")
-    relationship_info = relationship("Relationship", back_populates="events")
     ceremonial_money = relationship("CeremonialMoney", back_populates="event")
     
     def __repr__(self):
@@ -130,7 +128,7 @@ class Event(Base):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "relationship_id": self.relationship_id,
+
             "title": self.title,
             "event_type": self.event_type.value,
             "description": self.description,
