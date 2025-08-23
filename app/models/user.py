@@ -67,15 +67,11 @@ class User(Base):
     last_login = Column(DateTime)
     
     # 🔗 관계 설정
-    # 내가 관리하는 관계들
-    relationships = relationship("Relationship", back_populates="user", cascade="all, delete-orphan")
-    
     # 내가 생성한 이벤트들
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
     
-    # 내가 주고받은 경조사비들
-    ceremonial_money_given = relationship("CeremonialMoney", foreign_keys="CeremonialMoney.giver_id", back_populates="giver")
-    ceremonial_money_received = relationship("CeremonialMoney", foreign_keys="CeremonialMoney.receiver_id", back_populates="receiver")
+    # 내가 기록한 경조사비들
+    ceremonial_money_given = relationship("CeremonialMoney", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, name={self.full_name})>"
