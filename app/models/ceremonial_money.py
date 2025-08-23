@@ -28,12 +28,12 @@ class CeremonialMoney(Base):
     # 🔑 기본 정보
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    relationship_id = Column(Integer, ForeignKey("relationships.id"))
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)  # 필수로 변경
     
-    # 👥 주고받는 사람
-    giver_id = Column(Integer, ForeignKey("users.id"))
-    receiver_id = Column(Integer, ForeignKey("users.id"))
+    # 👤 상대방 정보 (직접 저장)
+    contact_name = Column(String(100), nullable=False)  # 상대방 이름
+    contact_phone = Column(String(20))                  # 연락처 (선택)
+    relationship_type = Column(String(50))              # 관계 (친구, 가족, 동료 등)
     
     # 💰 경조사비 정보
     title = Column(String(200), nullable=False)
@@ -64,10 +64,7 @@ class CeremonialMoney(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     
     # 🔗 관계 설정
-    user = relationship("User", foreign_keys=[user_id], back_populates="ceremonial_money_given")
-    giver = relationship("User", foreign_keys=[giver_id], back_populates="ceremonial_money_given")
-    receiver = relationship("User", foreign_keys=[receiver_id], back_populates="ceremonial_money_received")
-    relationship_info = relationship("Relationship", back_populates="ceremonial_money")
+    user = relationship("User", back_populates="ceremonial_money_given")
     event = relationship("Event", back_populates="ceremonial_money")
     
     # 답례 관계
@@ -81,10 +78,10 @@ class CeremonialMoney(Base):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "relationship_id": self.relationship_id,
             "event_id": self.event_id,
-            "giver_id": self.giver_id,
-            "receiver_id": self.receiver_id,
+            "contact_name": self.contact_name,
+            "contact_phone": self.contact_phone,
+            "relationship_type": self.relationship_type,
             "event_type": self.event.event_type.value if self.event else None,
             "title": self.title,
             "description": self.description,
