@@ -2,6 +2,7 @@
 💰 경조사비 모델
 
 경조사비, 축의금, 조의금 및 선물 정보를 관리합니다.
+이벤트 타입으로 자동 분류됩니다 (결혼식, 장례식, 생일 등)
 """
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Enum, Float
@@ -12,13 +13,6 @@ import enum
 from app.core.database import Base
 
 
-class CeremonialMoneyType(enum.Enum):
-    """경조사비 유형"""
-    CONGRATULATORY = "congratulatory"         # 축의금 (결혼식, 돌잔치 등)
-    CONDOLENCE = "condolence"                 # 조의금 (장례식)
-    OTHER = "other"                           # 기타 (선물, 생일축하 등)
-
-
 class CeremonialMoneyDirection(enum.Enum):
     """경조사비 방향"""
     GIVEN = "given"                   # 준 것
@@ -27,7 +21,7 @@ class CeremonialMoneyDirection(enum.Enum):
 
 class CeremonialMoney(Base):
     """
-    경조사비 모델 - 축의금, 조의금, 선물 관리
+    경조사비 모델 - 이벤트 타입으로 자동 분류
     """
     __tablename__ = "ceremonial_money"
     
@@ -35,14 +29,13 @@ class CeremonialMoney(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     relationship_id = Column(Integer, ForeignKey("relationships.id"))
-    event_id = Column(Integer, ForeignKey("events.id"))
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)  # 필수로 변경
     
     # 👥 주고받는 사람
     giver_id = Column(Integer, ForeignKey("users.id"))
     receiver_id = Column(Integer, ForeignKey("users.id"))
     
     # 💰 경조사비 정보
-    ceremonial_money_type = Column(Enum(CeremonialMoneyType), nullable=False)
     title = Column(String(200), nullable=False)
     description = Column(Text)
     
@@ -92,7 +85,7 @@ class CeremonialMoney(Base):
             "event_id": self.event_id,
             "giver_id": self.giver_id,
             "receiver_id": self.receiver_id,
-            "ceremonial_money_type": self.ceremonial_money_type.value,
+            "event_type": self.event.event_type.value if self.event else None,
             "title": self.title,
             "description": self.description,
             "amount": self.amount,
@@ -140,16 +133,24 @@ class CeremonialMoney(Base):
         # 기본적으로 받은 금액과 비슷하게
         base_amount = self.amount
         
-        # 경조사비 유형에 따른 조정
-        if self.ceremonial_money_type == CeremonialMoneyType.CONGRATULATORY:
-            # 축의금은 동일 금액 권장
-            return int(base_amount)
-        elif self.ceremonial_money_type == CeremonialMoneyType.CONDOLENCE:
-            # 조의금은 답례 불필요하거나 적게
-            return int(base_amount * 0.5)
-        elif self.ceremonial_money_type == CeremonialMoneyType.CASH_GIFT:
-            # 현금 선물은 비슷하게
-            return int(base_amount)
+        # 이벤트 타입에 따른 조정
+        if self.event:
+            from app.models.event import EventType
+            event_type = self.event.event_type
+            
+            if event_type in [EventType.WEDDING, EventType.BABY_SHOWER, EventType.GRADUATION, 
+                             EventType.HOUSEWARMING, EventType.ENGAGEMENT, EventType.OPENING]:
+                # 축하 이벤트는 동일 금액 권장
+                return int(base_amount)
+            elif event_type == EventType.FUNERAL:
+                # 조의금은 답례 불필요하거나 적게
+                return int(base_amount * 0.3)
+            elif event_type in [EventType.BIRTHDAY, EventType.ANNIVERSARY]:
+                # 생일, 기념일은 비슷하게
+                return int(base_amount * 0.8)
+            else:
+                # 기타 이벤트
+                return int(base_amount * 0.7)
         
         # 관계에 따른 조정
         if self.relationship_info:
@@ -186,10 +187,24 @@ class CeremonialMoney(Base):
         
         title = self.title or "경조사비"
         
-        if self.ceremonial_money_type == CeremonialMoneyType.CONGRATULATORY:
-            return f"축의금 {self.amount:,}원 감사히 받았습니다. 소중한 마음 정말 고맙습니다."
-        elif self.ceremonial_money_type == CeremonialMoneyType.CONDOLENCE:
-            return f"조의금 {self.amount:,}원 감사히 받았습니다. 위로의 마음에 깊이 감사드립니다."
+        if self.event:
+            from app.models.event import EventType
+            event_type = self.event.event_type
+            
+            if event_type == EventType.WEDDING:
+                return f"결혼 축의금 {self.amount:,}원 감사히 받았습니다. 소중한 마음 정말 고맙습니다."
+            elif event_type == EventType.FUNERAL:
+                return f"조의금 {self.amount:,}원 감사히 받았습니다. 위로의 마음에 깊이 감사드립니다."
+            elif event_type == EventType.BABY_SHOWER:
+                return f"돌잔치 축의금 {self.amount:,}원 감사히 받았습니다. 아이의 성장을 축복해주셔서 고맙습니다."
+            elif event_type == EventType.BIRTHDAY:
+                return f"생일 축하금 {self.amount:,}원 감사히 받았습니다. 마음 깊이 고맙습니다."
+            elif event_type in [EventType.GRADUATION, EventType.PROMOTION]:
+                return f"축하금 {self.amount:,}원 감사히 받았습니다. 축하해주셔서 정말 고맙습니다."
+            elif event_type == EventType.HOUSEWARMING:
+                return f"새집 축하금 {self.amount:,}원 감사히 받았습니다. 새 출발을 축복해주셔서 고맙습니다."
+            else:
+                return f"{title} {self.amount:,}원 감사히 받았습니다."
         else:
             return f"{title} 감사히 받았습니다."
     
