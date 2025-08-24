@@ -13,7 +13,7 @@ import calendar
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.ceremonial_money import CeremonialMoney, CeremonialMoneyType, CeremonialMoneyDirection
+from app.models.ceremonial_money import CeremonialMoney, CeremonialMoneyDirection
 from app.models.user import User
 from app.models.event import Event
 
@@ -33,7 +33,7 @@ async def get_ceremonial_money(
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    ceremonial_money_type: Optional[CeremonialMoneyType] = None,
+
     direction: Optional[CeremonialMoneyDirection] = None,
 
     start_date: Optional[date] = None,
