@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     
     # PostgreSQL 설정
     POSTGRES_SERVER: str = "localhost"
+    POSTGRES_HOST: str = "localhost"  # Docker용 호스트명
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "password"
     POSTGRES_DB: str = "chalna_db"
@@ -48,6 +49,11 @@ class Settings(BaseSettings):
         # 개발/프로덕션 모두 PostgreSQL 사용
         return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}:{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
     
+    # 🌐 서버 설정
+    ENVIRONMENT: str = "development"
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+    
     # 🌐 CORS 설정
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
         "http://localhost:3000",
@@ -57,6 +63,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8000",
         "http://127.0.0.1:8080",
     ]
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000"
     
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: List[str]) -> List[str]:
@@ -79,11 +86,35 @@ class Settings(BaseSettings):
     
     # 📂 파일 업로드 설정
     UPLOAD_DIR: str = "./uploads"
+    UPLOAD_PATH: str = "/app/uploads"  # Docker 컨테이너용 경로
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
+    MAX_FILE_SIZE_MB: int = 10
+    ALLOWED_EXTENSIONS: str = "jpg,jpeg,png,gif,pdf,doc,docx"
     
     # 🔗 외부 API 설정
     KAKAO_API_KEY: Optional[str] = None
     NAVER_API_KEY: Optional[str] = None
+    
+    # 🔴 Redis 설정
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    
+    # 📝 로깅 설정
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "json"
+    
+    # 🔒 보안 설정
+    FORCE_HTTPS: bool = False
+    TRUSTED_HOSTS: str = "localhost,127.0.0.1,0.0.0.0"
+    
+    # 🏥 헬스체크 설정
+    ENABLE_HEALTHCHECK: bool = True
+    ENABLE_METRICS: bool = True
+    
+    # 🌍 다국어 설정
+    DEFAULT_LANGUAGE: str = "ko"
+    DEFAULT_TIMEZONE: str = "Asia/Seoul"
     
     # 🎯 경조사 관련 설정
     DEFAULT_GIFT_AMOUNTS: dict = {
