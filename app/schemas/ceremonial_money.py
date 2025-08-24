@@ -86,7 +86,7 @@ class CeremonialMoneyUpdate(BaseModel):
     """경조사비 수정 스키마"""
     
     title: Optional[str] = Field(None, min_length=1, max_length=200)
-    ceremonial_money_type: Optional[CeremonialMoneyType] = None
+
     direction: Optional[CeremonialMoneyDirection] = None
     
     amount: Optional[float] = Field(None, ge=0)
@@ -258,7 +258,7 @@ class CeremonialMoneyQuickAdd(BaseModel):
     """빠른 경조사비/선물 추가"""
     
     title: str = Field(..., min_length=1, max_length=100)
-    ceremonial_money_type: CeremonialMoneyType
+
     direction: CeremonialMoneyDirection
     amount: float = Field(..., ge=0)
     given_date: Optional[datetime] = None  # 기본값: 현재 시간
