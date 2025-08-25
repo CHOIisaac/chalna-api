@@ -1,0 +1,84 @@
+# 🐳 찰나(Chalna) - 로컬 개발용 도커 컴포즈 설정
+# 서버는 로컬에서 실행, 인프라 서비스만 도커로 실행
+
+services:
+  # 📊 PostgreSQL 데이터베이스
+  db:
+    image: postgres:15-alpine
+    container_name: chalna-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chalna
+      POSTGRES_USER: chalna_user
+      POSTGRES_PASSWORD: chalna_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - chalna-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chalna_user -d chalna"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # 🗄️ Redis (캐싱 및 세션 저장소)
+  redis:
+    image: redis:7-alpine
+    container_name: chalna-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - chalna-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 📊 PostgreSQL 관리 도구 (선택사항)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: chalna-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@chalna.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - chalna-network
+    depends_on:
+      - db
+    profiles:
+      - admin  # docker-compose --profile admin up 으로 실행
+
+# 🔧 네트워크 설정
+networks:
+  chalna-network:
+    driver: bridge
+    name: chalna-network
+
+# 💾 볼륨 설정
+volumes:
+  postgres_data:
+    driver: local
+    name: chalna-postgres-data
+  
+  redis_data:
+    driver: local
+    name: chalna-redis-data
+  
+  pgadmin_data:
+    driver: local
+    name: chalna-pgadmin-data
