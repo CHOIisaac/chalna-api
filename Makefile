@@ -57,25 +57,43 @@ docker-build:  ## 🏗️ 도커 이미지 빌드
 	docker build -t chalna-api .
 
 docker-run:  ## 🚀 도커 컨테이너 실행 (프로덕션)
-	docker-compose up -d
+	docker compose up -d
 
 docker-dev:  ## 🛠️ 도커 개발 환경 실행 (로그 출력)
-	docker-compose up
+	docker compose up
+
+docker-local:  ## 🛠️ 로컬 개발용 인프라만 실행 (DB + Redis)
+	docker compose -f docker-compose.local.yml up -d
+
+docker-local-logs:  ## 📋 로컬 개발용 도커 로그 확인
+	docker compose -f docker-compose.local.yml logs -f
+
+docker-local-stop:  ## ⏹️ 로컬 개발용 도커 컨테이너 중지
+	docker compose -f docker-compose.local.yml down
 
 docker-stop:  ## ⏹️ 도커 컨테이너 중지
-	docker-compose down
+	docker compose down
 
 docker-clean:  ## 🧹 도커 리소스 정리
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
+	docker compose -f docker-compose.local.yml down -v --remove-orphans
 	docker system prune -f
 
 docker-logs:  ## 📋 도커 로그 확인
-	docker-compose logs -f api
+	docker compose logs -f api
 
 docker-shell:  ## 🐚 도커 컨테이너에 쉘 접속
-	docker-compose exec api /bin/bash
+	docker compose exec api /bin/bash
 
 docker-admin:  ## 🛠️ PgAdmin 포함 전체 실행
-	docker-compose --profile admin up
+	docker compose --profile admin up
+
+dev-local:  ## 🚀 로컬 개발 환경 (인프라는 도커, 서버는 로컬)
+	@echo "🐳 도커로 인프라 서비스 시작 중..."
+	docker compose -f docker-compose.local.yml up -d
+	@echo "⏳ 데이터베이스 준비 대기 중..."
+	@sleep 10
+	@echo "🚀 로컬 서버 시작..."
+	ENV_FILE=.env.local uv run fastapi dev main.py
 
 .DEFAULT_GOAL := help
