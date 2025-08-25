@@ -128,7 +128,7 @@ class Settings(BaseSettings):
     NOTIFICATION_DAYS_BEFORE: List[int] = [7, 3, 1]  # 며칠 전에 알림
     
     class Config:
-        env_file = ".env"
+        env_file = os.getenv("ENV_FILE", ".env")
         env_file_encoding = "utf-8"
         case_sensitive = True
 
