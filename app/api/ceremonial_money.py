@@ -15,27 +15,29 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.ceremonial_money import CeremonialMoney, CeremonialMoneyDirection
 from app.models.user import User
-from app.models.event import Event
+from app.models.event import Event, EventType
 
 from app.schemas.ceremonial_money import (
     CeremonialMoneyCreate, CeremonialMoneyUpdate, CeremonialMoneyResponse, CeremonialMoneyInDB,
     FinancialTransactionBase, FinancialSummary, 
     MonthlyFinancialReport, YearlyFinancialReport,
-    CeremonialMoneyQuickAdd, PendingReciprocals, CeremonialMoneyRecommendation,
-    ContactSummary, ContactListResponse
+    CeremonialMoneyQuickAdd, PendingReciprocals, CeremonialMoneyRecommendation
 )
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[CeremonialMoneyResponse])
+@router.get(
+    "/",
+    response_model=List[CeremonialMoneyResponse],
+    summary="💰 경조사비 목록 조회",
+    description="사용자의 모든 경조사비 내역을 조회합니다. 방향, 기간, 검색어별 필터링을 지원합니다."
+)
 async def get_ceremonial_money(
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-
     direction: Optional[CeremonialMoneyDirection] = None,
-
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     search: Optional[str] = None,
@@ -43,13 +45,10 @@ async def get_ceremonial_money(
 ):
     """💰 경조사비/선물 목록 조회"""
     query = db.query(CeremonialMoney).options(
-        joinedload(CeremonialMoney.event),
-        joinedload(CeremonialMoney.relationship_info)
+        joinedload(CeremonialMoney.event)
     ).filter(CeremonialMoney.user_id == current_user.id)
     
     # 필터 적용
-    if ceremonial_money_type:
-        query = query.filter(CeremonialMoney.ceremonial_money_type == ceremonial_money_type)
     if direction:
         query = query.filter(CeremonialMoney.direction == direction)
 
@@ -75,9 +74,8 @@ async def get_ceremonial_money(
         
         if money.event:
             money_data.event_title = money.event.title
-        if money.relationship_info:
-            money_data.relationship_name = money.relationship_info.contact_name
-            money_data.relationship_type = money.relationship_info.relationship_type.value
+        money_data.relationship_name = money.contact_name
+        money_data.relationship_type = money.relationship_type
         
         money_data.days_since_given = (date.today() - money.given_date.date()).days
         
@@ -103,8 +101,7 @@ async def get_financial_transactions(
 ):
     """💰 가계부 거래 내역 조회"""
     query = db.query(CeremonialMoney).options(
-        joinedload(CeremonialMoney.event),
-        joinedload(CeremonialMoney.relationship_info)
+        joinedload(CeremonialMoney.event)
     ).filter(CeremonialMoney.user_id == current_user.id)
     
     if start_date:
@@ -125,7 +122,7 @@ async def get_financial_transactions(
             direction=money.direction,
             transaction_date=money.given_date,
             event_title=money.event.title if money.event else None,
-            relationship_name=money.relationship_info.contact_name if money.relationship_info else None,
+            relationship_name=money.contact_name,
             memo=money.memo
         )
         transactions.append(transaction)
@@ -133,7 +130,12 @@ async def get_financial_transactions(
     return transactions
 
 
-@router.get("/summary", response_model=FinancialSummary)
+@router.get(
+    "/summary",
+    response_model=FinancialSummary,
+    summary="📊 재정 요약 조회",
+    description="사용자의 경조사비 수입/지출 현황을 요약하여 보여줍니다."
+)
 async def get_financial_summary(
     current_user: User = Depends(get_current_user),
     start_date: Optional[date] = None,
@@ -142,36 +144,31 @@ async def get_financial_summary(
     db: Session = Depends(get_db)
 ):
     """📊 가계부 요약 정보"""
-    if not start_date or not end_date:
-        today = date.today()
-        if period_type == "monthly":
-            start_date = today.replace(day=1)
-            last_day = calendar.monthrange(today.year, today.month)[1]
-            end_date = today.replace(day=last_day)
-        elif period_type == "yearly":
-            start_date = today.replace(month=1, day=1)
-            end_date = today.replace(month=12, day=31)
+    if not start_date:
+        start_date = date.today().replace(day=1)
+    if not end_date:
+        end_date = date.today()
     
-    ceremonial_money = db.query(CeremonialMoney).options(
-        joinedload(CeremonialMoney.event)
-    ).filter(
+    # 기간 내 경조사비 조회
+    ceremonial_money = db.query(CeremonialMoney).filter(
         CeremonialMoney.user_id == current_user.id,
-        CeremonialMoney.given_date >= start_date,
-        CeremonialMoney.given_date <= end_date
+        CeremonialMoney.given_date >= datetime.combine(start_date, datetime.min.time()),
+        CeremonialMoney.given_date <= datetime.combine(end_date, datetime.max.time())
     ).all()
     
-    total_income = sum(m.amount for m in ceremonial_money if m.direction == CeremonialMoneyDirection.RECEIVED)
-    total_expense = sum(m.amount for m in ceremonial_money if m.direction == CeremonialMoneyDirection.GIVEN)
+    # 통계 계산
+    total_income = sum(money.amount for money in ceremonial_money if money.direction == CeremonialMoneyDirection.RECEIVED)
+    total_expense = sum(money.amount for money in ceremonial_money if money.direction == CeremonialMoneyDirection.GIVEN)
     net_amount = total_income - total_expense
     transaction_count = len(ceremonial_money)
     
-    income_by_category = {}
+    # 카테고리별 통계
     expense_by_category = {}
     expense_by_event_type = {}
     income_by_event_type = {}
     
     for money in ceremonial_money:
-        money_type = money.ceremonial_money_type.value or "기타"
+        money_type = money.event.event_type.value if money.event else "기타"
         
         if money.direction == CeremonialMoneyDirection.RECEIVED:
             income_by_category[money_type] = income_by_category.get(money_type, 0) + money.amount
@@ -208,7 +205,12 @@ async def get_financial_summary(
     )
 
 
-@router.post("/", response_model=CeremonialMoneyResponse)
+@router.post(
+    "/",
+    response_model=CeremonialMoneyResponse,
+    summary="➕ 새 경조사비 등록",
+    description="새로운 경조사비 내역을 등록합니다. 방향, 금액, 연락처 등의 정보를 입력하세요."
+)
 async def create_ceremonial_money(
     money_data: CeremonialMoneyCreate,
     current_user: User = Depends(get_current_user),
@@ -226,17 +228,6 @@ async def create_ceremonial_money(
                 detail="이벤트를 찾을 수 없습니다"
             )
     
-    if money_data.relationship_id:
-        relationship = db.query(Relationship).filter(
-            Relationship.id == money_data.relationship_id,
-            Relationship.user_id == current_user.id
-        ).first()
-        if not relationship:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="관계를 찾을 수 없습니다"
-            )
-    
     ceremonial_money = CeremonialMoney(
         user_id=current_user.id,
         **money_data.dict(exclude_unset=True)
@@ -249,7 +240,12 @@ async def create_ceremonial_money(
     return CeremonialMoneyResponse.from_orm(ceremonial_money)
 
 
-@router.post("/quick", response_model=CeremonialMoneyResponse)
+@router.post(
+    "/quick",
+    response_model=CeremonialMoneyResponse,
+    summary="⚡ 빠른 경조사비 등록",
+    description="최소한의 정보로 빠르게 경조사비 내역을 등록합니다."
+)
 async def create_quick_ceremonial_money(
     money_data: CeremonialMoneyQuickAdd,
     current_user: User = Depends(get_current_user),
@@ -259,7 +255,6 @@ async def create_quick_ceremonial_money(
     ceremonial_money = CeremonialMoney(
         user_id=current_user.id,
         title=money_data.title,
-        ceremonial_money_type=money_data.ceremonial_money_type,
         direction=money_data.direction,
         amount=money_data.amount,
         given_date=money_data.given_date or datetime.now(),
@@ -273,15 +268,18 @@ async def create_quick_ceremonial_money(
     return CeremonialMoneyResponse.from_orm(ceremonial_money)
 
 
-@router.get("/pending-reciprocals", response_model=List[PendingReciprocals])
+@router.get(
+    "/pending-reciprocals",
+    response_model=List[PendingReciprocals],
+    summary="🔄 답례 대기 목록",
+    description="받은 경조사비에 대한 답례가 필요한 항목들을 조회합니다."
+)
 async def get_pending_reciprocals(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """🔄 답례 대기 목록 조회"""
-    received_money = db.query(CeremonialMoney).options(
-        joinedload(CeremonialMoney.relationship_info)
-    ).filter(
+    received_money = db.query(CeremonialMoney).filter(
         CeremonialMoney.user_id == current_user.id,
         CeremonialMoney.direction == CeremonialMoneyDirection.RECEIVED,
         CeremonialMoney.reciprocal_required == True,
@@ -307,7 +305,7 @@ async def get_pending_reciprocals(
         pending = PendingReciprocals(
             ceremonial_money_id=money.id,
             original_title=money.title,
-            giver_name=money.relationship_info.contact_name if money.relationship_info else "알 수 없음",
+            giver_name=money.contact_name,
             amount_received=money.amount,
             received_date=money.given_date,
             reciprocal_deadline=money.reciprocal_deadline,
@@ -323,7 +321,12 @@ async def get_pending_reciprocals(
     return pending_list
 
 
-@router.get("/{ceremonial_money_id}", response_model=CeremonialMoneyResponse)
+@router.get(
+    "/{ceremonial_money_id}",
+    response_model=CeremonialMoneyResponse,
+    summary="🔍 특정 경조사비 조회",
+    description="경조사비 ID로 특정 내역의 상세 정보를 조회합니다."
+)
 async def get_ceremonial_money_detail(
     ceremonial_money_id: int,
     current_user: User = Depends(get_current_user),
@@ -331,8 +334,7 @@ async def get_ceremonial_money_detail(
 ):
     """🔍 특정 경조사비 조회"""
     ceremonial_money = db.query(CeremonialMoney).options(
-        joinedload(CeremonialMoney.event),
-        joinedload(CeremonialMoney.relationship_info)
+        joinedload(CeremonialMoney.event)
     ).filter(
         CeremonialMoney.id == ceremonial_money_id,
         CeremonialMoney.user_id == current_user.id
@@ -348,16 +350,20 @@ async def get_ceremonial_money_detail(
     
     if ceremonial_money.event:
         money_data.event_title = ceremonial_money.event.title
-    if ceremonial_money.relationship_info:
-        money_data.relationship_name = ceremonial_money.relationship_info.contact_name
-        money_data.relationship_type = ceremonial_money.relationship_info.relationship_type.value
+    money_data.relationship_name = ceremonial_money.contact_name
+    money_data.relationship_type = ceremonial_money.relationship_type
     
     money_data.days_since_given = (date.today() - ceremonial_money.given_date.date()).days
     
     return money_data
 
 
-@router.put("/{ceremonial_money_id}", response_model=CeremonialMoneyResponse)
+@router.put(
+    "/{ceremonial_money_id}",
+    response_model=CeremonialMoneyResponse,
+    summary="✏️ 경조사비 정보 수정",
+    description="기존 경조사비 내역의 정보를 수정합니다."
+)
 async def update_ceremonial_money(
     ceremonial_money_id: int,
     money_data: CeremonialMoneyUpdate,
@@ -386,7 +392,11 @@ async def update_ceremonial_money(
     return CeremonialMoneyResponse.from_orm(ceremonial_money)
 
 
-@router.delete("/{ceremonial_money_id}")
+@router.delete(
+    "/{ceremonial_money_id}",
+    summary="🗑️ 경조사비 내역 삭제",
+    description="경조사비 내역을 완전히 삭제합니다."
+)
 async def delete_ceremonial_money(
     ceremonial_money_id: int,
     current_user: User = Depends(get_current_user),
@@ -408,167 +418,3 @@ async def delete_ceremonial_money(
     db.commit()
     
     return {"message": "경조사비가 성공적으로 삭제되었습니다"}
-
-
-# 🤝 연락처별 경조사비 관리 API
-@router.get("/contacts", response_model=ContactListResponse)
-async def get_contacts_summary(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """👥 전체 연락처별 경조사비 요약 조회"""
-    
-    # 사용자의 모든 경조사비 조회
-    ceremonial_money_list = db.query(CeremonialMoney).filter(
-        CeremonialMoney.user_id == current_user.id
-    ).all()
-    
-    # 연락처별로 그룹화
-    contacts_dict = {}
-    total_given = 0
-    total_received = 0
-    
-    for money in ceremonial_money_list:
-        contact_name = money.contact_name
-        
-        if contact_name not in contacts_dict:
-            contacts_dict[contact_name] = {
-                "contact_name": contact_name,
-                "contact_phone": money.contact_phone,
-                "relationship_type": money.relationship_type,
-                "total_given": 0,
-                "total_received": 0,
-                "given_count": 0,
-                "received_count": 0,
-                "last_given_date": None,
-                "last_received_date": None,
-                "recent_transactions": []
-            }
-        
-        contact = contacts_dict[contact_name]
-        
-        if money.direction == CeremonialMoneyDirection.GIVEN:
-            contact["total_given"] += money.amount
-            contact["given_count"] += 1
-            total_given += money.amount
-            if not contact["last_given_date"] or money.given_date > contact["last_given_date"]:
-                contact["last_given_date"] = money.given_date
-        else:
-            contact["total_received"] += money.amount
-            contact["received_count"] += 1
-            total_received += money.amount
-            if not contact["last_received_date"] or money.given_date > contact["last_received_date"]:
-                contact["last_received_date"] = money.given_date
-        
-        # 최근 거래 내역 추가 (최대 5개)
-        transaction = {
-            "id": money.id,
-            "title": money.title,
-            "amount": money.amount,
-            "direction": money.direction.value,
-            "date": money.given_date,
-            "event_type": money.event.event_type.value if money.event else None
-        }
-        contact["recent_transactions"].append(transaction)
-    
-    # 연락처별 데이터 정리
-    contacts = []
-    for contact_data in contacts_dict.values():
-        # 최근 거래 내역 정렬 (최신순) 및 최대 5개로 제한
-        contact_data["recent_transactions"] = sorted(
-            contact_data["recent_transactions"], 
-            key=lambda x: x["date"], 
-            reverse=True
-        )[:5]
-        
-        # 수지 계산
-        contact_data["balance"] = contact_data["total_received"] - contact_data["total_given"]
-        
-        contacts.append(ContactSummary(**contact_data))
-    
-    # 수지 순으로 정렬 (받은 것이 많은 순)
-    contacts.sort(key=lambda x: x.balance, reverse=True)
-    
-    return ContactListResponse(
-        contacts=contacts,
-        total_contacts=len(contacts),
-        total_given_amount=total_given,
-        total_received_amount=total_received,
-        overall_balance=total_received - total_given
-    )
-
-
-@router.get("/contacts/{contact_name}", response_model=ContactSummary)
-async def get_contact_summary(
-    contact_name: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """👤 특정 연락처의 경조사비 상세 내역 조회"""
-    
-    # 해당 연락처와의 모든 경조사비 조회
-    ceremonial_money_list = db.query(CeremonialMoney).filter(
-        CeremonialMoney.user_id == current_user.id,
-        CeremonialMoney.contact_name == contact_name
-    ).order_by(CeremonialMoney.given_date.desc()).all()
-    
-    if not ceremonial_money_list:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"'{contact_name}'님과의 경조사비 내역을 찾을 수 없습니다"
-        )
-    
-    # 통계 계산
-    total_given = 0
-    total_received = 0
-    given_count = 0
-    received_count = 0
-    last_given_date = None
-    last_received_date = None
-    recent_transactions = []
-    
-    # 연락처 정보 (첫 번째 기록에서 가져오기)
-    first_record = ceremonial_money_list[0]
-    contact_phone = first_record.contact_phone
-    relationship_type = first_record.relationship_type
-    
-    for money in ceremonial_money_list:
-        if money.direction == CeremonialMoneyDirection.GIVEN:
-            total_given += money.amount
-            given_count += 1
-            if not last_given_date or money.given_date > last_given_date:
-                last_given_date = money.given_date
-        else:
-            total_received += money.amount
-            received_count += 1
-            if not last_received_date or money.given_date > last_received_date:
-                last_received_date = money.given_date
-        
-        # 최근 거래 내역
-        transaction = {
-            "id": money.id,
-            "title": money.title,
-            "amount": money.amount,
-            "direction": money.direction.value,
-            "date": money.given_date,
-            "event_type": money.event.event_type.value if money.event else None,
-            "memo": money.memo
-        }
-        recent_transactions.append(transaction)
-    
-    # 최근 거래 내역은 최대 10개로 제한
-    recent_transactions = recent_transactions[:10]
-    
-    return ContactSummary(
-        contact_name=contact_name,
-        contact_phone=contact_phone,
-        relationship_type=relationship_type,
-        total_given=total_given,
-        total_received=total_received,
-        balance=total_received - total_given,
-        given_count=given_count,
-        received_count=received_count,
-        last_given_date=last_given_date,
-        last_received_date=last_received_date,
-        recent_transactions=recent_transactions
-    )
