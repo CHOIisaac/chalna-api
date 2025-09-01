@@ -16,7 +16,7 @@ from app.api import (
     users_router,
     events_router,
     ceremonial_money_router,
-
+    schedules_router,
 )
 
 # FastAPI 앱 생성
@@ -50,6 +50,10 @@ app = FastAPI(
             "name": "경조사",
             "description": "🎉 경조사 이벤트 관리 (결혼식, 장례식, 생일 등)",
         },
+        {
+            "name": "일정관리",
+            "description": "📅 개인 일정, 할 일, 리마인더 관리",
+        },
     ],
 )
 
@@ -67,6 +71,7 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["인증"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["사용자"])
 app.include_router(events_router, prefix="/api/v1/events", tags=["경조사"])
 app.include_router(ceremonial_money_router, prefix="/api/v1/ceremonial-money", tags=["경조사비관리"])
+app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["일정관리"])
 
 
 # 루트 엔드포인트
