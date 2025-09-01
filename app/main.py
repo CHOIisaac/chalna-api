@@ -70,7 +70,11 @@ app.include_router(ceremonial_money_router, prefix="/api/v1/ceremonial-money", t
 
 
 # 루트 엔드포인트
-@app.get("/")
+@app.get(
+    "/",
+    summary="👋 찰나 API 서버 상태 확인",
+    description="찰나 API 서버의 기본 정보와 상태를 확인합니다."
+)
 async def root():
     """
     👋 찰나 API 서버 상태 확인
@@ -84,7 +88,11 @@ async def root():
     }
 
 # 헬스 체크 엔드포인트
-@app.get("/health")
+@app.get(
+    "/health",
+    summary="🏥 서버 및 데이터베이스 상태 확인",
+    description="서버와 데이터베이스의 연결 상태를 확인합니다."
+)
 async def health_check(db: Session = Depends(get_db)):
     """
     🏥 서버 및 데이터베이스 상태 확인
