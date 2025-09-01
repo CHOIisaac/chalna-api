@@ -27,7 +27,12 @@ router = APIRouter()
 # UI 관련 함수들 삭제 - 프론트엔드에서 처리
 
 
-@router.get("/", response_model=List[EventResponse])
+@router.get(
+    "/",
+    response_model=List[EventResponse],
+    summary="🎉 이벤트 목록 조회",
+    description="사용자의 모든 경조사 이벤트를 조회합니다. 기간, 타입, 상태별 필터링과 검색을 지원합니다."
+)
 async def get_events(
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0),
@@ -98,7 +103,12 @@ async def get_events(
     return result
 
 
-@router.get("/upcoming", response_model=List[EventResponse])
+@router.get(
+    "/upcoming",
+    response_model=List[EventResponse],
+    summary="📅 다가오는 이벤트 조회",
+    description="지정된 기간 내에 예정된 경조사 이벤트들을 조회합니다."
+)
 async def get_upcoming_events(
     current_user: User = Depends(get_current_user),
     days: int = Query(30, ge=1, le=365),
@@ -132,7 +142,12 @@ async def get_upcoming_events(
     return result
 
 
-@router.get("/calendar/monthly", response_model=MonthlyCalendarResponse)
+@router.get(
+    "/calendar",
+    response_model=MonthlyCalendarResponse,
+    summary="📆 월간 캘린더 조회",
+    description="특정 월의 모든 경조사 이벤트를 캘린더 형태로 조회합니다."
+)
 async def get_monthly_calendar(
     year: int = Query(..., ge=2020, le=2030),
     month: int = Query(..., ge=1, le=12),
@@ -260,7 +275,12 @@ async def get_weekly_calendar(
     }
 
 
-@router.post("/", response_model=EventResponse)
+@router.post(
+    "/",
+    response_model=EventResponse,
+    summary="➕ 새 이벤트 생성",
+    description="새로운 경조사 이벤트를 생성합니다. 제목, 날짜, 타입, 장소 등의 정보를 입력하세요."
+)
 async def create_event(
     event_data: EventCreate,
     current_user: User = Depends(get_current_user),
@@ -299,7 +319,12 @@ async def create_event(
     return event_response
 
 
-@router.post("/quick", response_model=EventResponse)
+@router.post(
+    "/quick",
+    response_model=EventResponse,
+    summary="⚡ 빠른 이벤트 생성",
+    description="최소한의 정보로 빠르게 경조사 이벤트를 생성합니다."
+)
 async def create_quick_event(
     event_data: EventQuickCreate,
     current_user: User = Depends(get_current_user),
@@ -325,7 +350,12 @@ async def create_quick_event(
     return EventResponse.from_orm(event)
 
 
-@router.get("/{event_id}", response_model=EventResponse)
+@router.get(
+    "/{event_id}",
+    response_model=EventResponse,
+    summary="🔍 특정 이벤트 조회",
+    description="이벤트 ID로 특정 경조사 이벤트의 상세 정보를 조회합니다."
+)
 async def get_event(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -364,7 +394,12 @@ async def get_event(
     return event_data
 
 
-@router.put("/{event_id}", response_model=EventResponse)
+@router.put(
+    "/{event_id}",
+    response_model=EventResponse,
+    summary="✏️ 이벤트 정보 수정",
+    description="기존 경조사 이벤트의 정보를 수정합니다."
+)
 async def update_event(
     event_id: int,
     event_data: EventUpdate,
@@ -396,7 +431,11 @@ async def update_event(
     return EventResponse.from_orm(event)
 
 
-@router.delete("/{event_id}")
+@router.delete(
+    "/{event_id}",
+    summary="🗑️ 이벤트 삭제",
+    description="경조사 이벤트를 완전히 삭제합니다."
+)
 async def delete_event(
     event_id: int,
     current_user: User = Depends(get_current_user),
