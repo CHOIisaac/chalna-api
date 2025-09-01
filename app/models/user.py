@@ -73,6 +73,9 @@ class User(Base):
     # 내가 기록한 경조사비들
     ceremonial_money_given = relationship("CeremonialMoney", back_populates="user", cascade="all, delete-orphan")
     
+    # 내가 생성한 일정들
+    schedules = relationship("Schedule", back_populates="user", cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, name={self.full_name})>"
     
