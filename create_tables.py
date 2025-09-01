@@ -14,7 +14,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.models import User, Event, CeremonialMoney, Relationship  # 모든 모델 임포트
+from app.models import User, Event, CeremonialMoney, Schedule  # 모든 모델 임포트
 
 
 def create_database_if_not_exists():
