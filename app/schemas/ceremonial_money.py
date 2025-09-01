@@ -69,7 +69,6 @@ class CeremonialMoneyCreate(CeremonialMoneyBase):
         json_schema_extra = {
             "example": {
                 "title": "홍길동 결혼축하금",
-                "ceremonial_money_type": "congratulatory",
                 "direction": "given",
                 "amount": 100000,
                 "description": "결혼식 축의금",
@@ -142,7 +141,7 @@ class CeremonialMoneyResponse(CeremonialMoneyInDB):
                 "event_id": 1,
                 "relationship_id": 5,
                 "title": "홍길동 결혼축하금",
-                "ceremonial_money_type": "congratulatory",
+
                 "direction": "given",
                 "amount": 100000,
                 "given_date": "2024-03-15T14:00:00",
@@ -268,7 +267,7 @@ class CeremonialMoneyQuickAdd(BaseModel):
         json_schema_extra = {
             "example": {
                 "title": "김영희 생일선물",
-                "ceremonial_money_type": "other",
+
                 "direction": "given",
                 "amount": 50000,
                 "memo": "생일 축하금"
