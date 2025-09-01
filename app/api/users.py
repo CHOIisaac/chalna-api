@@ -14,7 +14,11 @@ from app.models.user import User
 router = APIRouter()
 
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="👥 사용자 목록 조회",
+    description="시스템에 등록된 모든 사용자 목록을 조회합니다 (관리자용)."
+)
 async def get_users(
     skip: int = 0,
     limit: int = 100,
@@ -27,7 +31,11 @@ async def get_users(
     return [user.to_dict() for user in users]
 
 
-@router.get("/{user_id}")
+@router.get(
+    "/{user_id}",
+    summary="👤 특정 사용자 정보 조회",
+    description="사용자 ID로 특정 사용자의 상세 정보를 조회합니다."
+)
 async def get_user(
     user_id: int,
     db: Session = Depends(get_db)
@@ -46,7 +54,11 @@ async def get_user(
     return user.to_dict()
 
 
-@router.put("/{user_id}")
+@router.put(
+    "/{user_id}",
+    summary="✏️ 사용자 정보 수정",
+    description="사용자의 이름, 닉네임, 전화번호 등의 정보를 수정합니다."
+)
 async def update_user(
     user_id: int,
     full_name: str = None,
@@ -82,13 +94,17 @@ async def update_user(
     }
 
 
-@router.delete("/{user_id}")
+@router.delete(
+    "/{user_id}",
+    summary="🗑️ 사용자 계정 삭제",
+    description="사용자 계정을 완전히 삭제합니다 (관리자용)."
+)
 async def delete_user(
     user_id: int,
     db: Session = Depends(get_db)
 ):
     """
-    🗑️ 사용자 계정 삭제
+    🗑️ 사용자 계정 삭제 (관리자용)
     """
     user = db.query(User).filter(User.id == user_id).first()
     
