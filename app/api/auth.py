@@ -18,7 +18,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @router.post(
     "/login",
-    summary="사용자 로그인",
+    summary="🔑 사용자 로그인",
     description="이메일과 비밀번호로 로그인하여 JWT 토큰을 발급받습니다.",
     response_description="JWT 토큰과 사용자 정보",
     responses={
@@ -80,7 +80,11 @@ async def login(
     }
 
 
-@router.post("/register")
+@router.post(
+    "/register",
+    summary="📝 사용자 회원가입",
+    description="새로운 사용자 계정을 생성하고 JWT 토큰을 발급받습니다."
+)
 async def register(
     email: str,
     password: str,
@@ -121,7 +125,11 @@ async def register(
     }
 
 
-@router.get("/me")
+@router.get(
+    "/me",
+    summary="👤 현재 사용자 정보 조회",
+    description="JWT 토큰을 사용하여 현재 로그인한 사용자의 정보를 조회합니다."
+)
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
