@@ -13,7 +13,7 @@ from app.schemas.user import (
     NotificationSettings, NotificationSettingsUpdate
 )
 
-router = APIRouter(prefix="/users", tags=["사용자 관리"])
+router = APIRouter(tags=["사용자 관리"])
 
 
 @router.post("/", response_model=UserResponse, summary="사용자 생성", description="새로운 사용자를 생성합니다.")

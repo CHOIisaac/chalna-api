@@ -9,13 +9,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user_id
 from app.models.schedule import Schedule
-from app.models.user import User
 from app.schemas.schedule import (
     ScheduleCreate, ScheduleUpdate, ScheduleResponse, ScheduleSummary,
     DailySchedule, WeeklySchedule, ScheduleQuickAdd
 )
 
-router = APIRouter(prefix="/schedules", tags=["일정 관리"])
+router = APIRouter(tags=["일정 관리"])
 
 
 @router.post("/", response_model=ScheduleResponse, summary="일정 생성", description="새로운 경조사 일정을 생성합니다.")

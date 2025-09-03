@@ -83,9 +83,9 @@ async def root():
 async def health_check():
     return {"status": "healthy", "message": "서버가 정상적으로 작동 중입니다"}
 
-# API 라우터 등록
-app.include_router(auth_router, prefix="/auth", tags=["인증"])
-app.include_router(users_router, prefix="/users", tags=["사용자 관리"])
-app.include_router(events_router, prefix="/events", tags=["경조사 이벤트"])
-app.include_router(ledgers_router, prefix="/ledgers", tags=["장부 관리"])
-app.include_router(schedules_router, prefix="/schedules", tags=["일정 관리"]) 
+# API 라우터 등록 (사용자가 원했던 /api/v1/ prefix 사용)
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["인증"])
+app.include_router(users_router, prefix="/api/v1/users", tags=["사용자 관리"])
+app.include_router(events_router, prefix="/api/v1/events", tags=["경조사 이벤트"])
+app.include_router(ledgers_router, prefix="/api/v1/ledgers", tags=["장부 관리"])
+app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["일정 관리"])

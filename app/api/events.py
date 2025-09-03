@@ -15,7 +15,7 @@ from app.schemas.event import (
     CalendarEventBase, CalendarEventCreate, CalendarEventUpdate, CalendarEventResponse
 )
 
-router = APIRouter(prefix="/events", tags=["경조사 이벤트"])
+router = APIRouter(tags=["경조사 이벤트"])
 
 
 @router.post("/", response_model=EventResponse, summary="이벤트 생성", description="새로운 경조사 이벤트를 생성합니다.")

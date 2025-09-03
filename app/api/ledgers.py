@@ -16,7 +16,7 @@ from app.schemas.ledger import (
     LedgerStatistics, LedgerQuickAdd, LedgerSearch
 )
 
-router = APIRouter(prefix="/ledgers", tags=["장부 관리"])
+router = APIRouter(tags=["장부 관리"])
 
 
 @router.post("/", response_model=LedgerResponse, summary="장부 기록 생성", description="새로운 경조사비 수입지출 기록을 생성합니다.")
