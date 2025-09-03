@@ -4,6 +4,7 @@
 """
 from app.core.database import engine, Base
 from app.models import User, Event, Ledger, Schedule
+from app.core.constants import EntryType
 
 def create_tables():
     """모든 테이블 생성"""
@@ -75,7 +76,7 @@ def create_sample_data():
         expense_ledger = Ledger(
             user_id=user.id,
             amount=100000,
-            entry_type="expense",
+            entry_type=EntryType.EXPENSE,
             event_type="결혼식",
             event_name="김철수 결혼식",
             event_date=date.today() + timedelta(days=30),
@@ -92,7 +93,7 @@ def create_sample_data():
         income_ledger = Ledger(
             user_id=user.id,
             amount=50000,
-            entry_type="income",
+            entry_type=EntryType.INCOME,
             event_type="돌잔치",
             event_name="내 돌잔치",
             event_date=date.today() - timedelta(days=10),
