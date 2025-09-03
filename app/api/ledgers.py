@@ -5,10 +5,11 @@ from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 
 from app.core.database import get_db
 from app.core.security import get_current_user_id
+from app.core.constants import EntryType
 from app.models.ledger import Ledger
 from app.schemas.ledger import (
     LedgerCreate, LedgerUpdate, LedgerResponse, LedgerSummary,
@@ -128,7 +129,7 @@ def get_income_ledgers(
     """수입 내역 조회"""
     ledgers = db.query(Ledger).filter(
         Ledger.user_id == current_user_id,
-        Ledger.entry_type == "income"
+        Ledger.entry_type == EntryType.INCOME
     ).order_by(Ledger.created_at.desc()).offset(skip).limit(limit).all()
     
     return ledgers
@@ -144,7 +145,7 @@ def get_expense_ledgers(
     """지출 내역 조회"""
     ledgers = db.query(Ledger).filter(
         Ledger.user_id == current_user_id,
-        Ledger.entry_type == "expense"
+        Ledger.entry_type == EntryType.EXPENSE
     ).order_by(Ledger.created_at.desc()).offset(skip).limit(limit).all()
     
     return ledgers
@@ -158,12 +159,12 @@ def get_balance(
     """수지 잔액 조회"""
     total_income = db.query(Ledger).filter(
         Ledger.user_id == current_user_id,
-        Ledger.entry_type == "income"
+        Ledger.entry_type == EntryType.INCOME
     ).with_entities(func.sum(Ledger.amount)).scalar() or 0
     
     total_expense = db.query(Ledger).filter(
         Ledger.user_id == current_user_id,
-        Ledger.entry_type == "expense"
+        Ledger.entry_type == EntryType.EXPENSE
     ).with_entities(func.sum(Ledger.amount)).scalar() or 0
     
     return {
@@ -287,13 +288,13 @@ def get_relationship_statistics(
             income = db.query(Ledger).filter(
                 Ledger.user_id == current_user_id,
                 Ledger.relationship_type == relationship[0],
-                Ledger.entry_type == "income"
+                Ledger.entry_type == EntryType.INCOME
             ).with_entities(func.sum(Ledger.amount)).scalar() or 0
             
             expense = db.query(Ledger).filter(
                 Ledger.user_id == current_user_id,
                 Ledger.relationship_type == relationship[0],
-                Ledger.entry_type == "expense"
+                Ledger.entry_type == EntryType.EXPENSE
             ).with_entities(func.sum(Ledger.amount)).scalar() or 0
             
             relationship_stats[relationship[0]] = {
