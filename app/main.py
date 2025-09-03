@@ -1,142 +1,91 @@
 """
-🎯 경조사 관리 앱 "찰나(Chalna)" - FastAPI 백엔드
-
-인간관계 중심의 경조사 생활 도우미 API
+FastAPI 메인 애플리케이션
 """
-
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 
-from app.core.config import settings
-from app.core.database import get_db
 from app.api import (
-    auth_router,
-    users_router,
-    events_router,
-    ceremonial_money_router,
-    schedules_router,
+    auth_router, users_router, events_router, 
+    ledgers_router, schedules_router
 )
 
-# FastAPI 앱 생성
 app = FastAPI(
-    title="🎯 찰나(Chalna) API",
-    version="0.1.0",
-    summary="경조사 관리의 새로운 패러다임",
-    terms_of_service="https://github.com/CHOIisaac/chalna-api/blob/main/LICENSE",
+    title="찰나(Chalna) API",
+    summary="경조사 관리 애플리케이션",
+    description="""
+    찰나(Chalna)는 경조사비 수입지출과 일정을 관리하는 애플리케이션입니다.
+    
+    ## 주요 기능
+    * 👤 사용자 관리 및 인증
+    * 📅 경조사 일정 관리
+    * 💰 경조사비 수입지출 장부
+    * 📊 통계 및 분석
+    """,
+    version="1.0.0",
+    terms_of_service="https://chalna.com/terms/",
     contact={
-        "name": "CHOIisaac",
-        "url": "https://github.com/CHOIisaac/chalna-api",
-        "email": "your.email@example.com",
+        "name": "Chalna Team",
+        "email": "support@chalna.com",
     },
     license_info={
-        "name": "MIT License",
-        "url": "https://github.com/CHOIisaac/chalna-api/blob/main/LICENSE",
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
     },
     docs_url="/swagger",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
     openapi_tags=[
         {
             "name": "인증",
-            "description": "🔐 사용자 인증 및 토큰 관리",
+            "description": "사용자 로그인, 회원가입, 토큰 관리"
         },
         {
-            "name": "사용자",
-            "description": "👤 사용자 정보 관리 및 프로필 설정",
+            "name": "사용자 관리",
+            "description": "사용자 정보 관리 및 설정"
         },
         {
-            "name": "경조사",
-            "description": "🎉 경조사 이벤트 관리 (결혼식, 장례식, 생일 등)",
+            "name": "경조사 이벤트",
+            "description": "경조사 이벤트 관리"
         },
         {
-            "name": "일정관리",
-            "description": "📅 개인 일정, 할 일, 리마인더 관리",
+            "name": "장부 관리",
+            "description": "경조사비 수입지출 장부 관리"
         },
-    ],
+        {
+            "name": "일정 관리",
+            "description": "경조사 일정 관리"
+        }
+    ]
 )
 
-# CORS 미들웨어 설정
+# CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=["*"],  # 프로덕션에서는 구체적인 도메인으로 제한
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 라우터 등록
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["인증"])
-app.include_router(users_router, prefix="/api/v1/users", tags=["사용자"])
-app.include_router(events_router, prefix="/api/v1/events", tags=["경조사"])
-app.include_router(ceremonial_money_router, prefix="/api/v1/ceremonial-money", tags=["경조사비관리"])
-app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["일정관리"])
-
-
-# 루트 엔드포인트
-@app.get(
-    "/",
-    summary="👋 찰나 API 서버 상태 확인",
-    description="찰나 API 서버의 기본 정보와 상태를 확인합니다."
-)
-async def root():
-    """
-    👋 찰나 API 서버 상태 확인
-    """
-    return {
-        "message": "🎯 찰나(Chalna) API 서버가 정상 작동 중입니다!",
-        "version": "0.1.0",
-        "description": "인간관계 중심의 경조사 관리 API",
-        "docs": "/docs",
-        "status": "healthy"
-    }
-
-# 헬스 체크 엔드포인트
-@app.get(
-    "/health",
-    summary="🏥 서버 및 데이터베이스 상태 확인",
-    description="서버와 데이터베이스의 연결 상태를 확인합니다."
-)
-async def health_check(db: Session = Depends(get_db)):
-    """
-    🏥 서버 및 데이터베이스 상태 확인
-    """
-    try:
-        # 데이터베이스 연결 확인
-        db.execute("SELECT 1")
-        db_status = "healthy"
-    except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
-    
-    return {
-        "status": "healthy",
-        "database": db_status,
-        "timestamp": "2024-01-01T00:00:00Z"
-    }
-
-# 앱 시작/종료 이벤트
 @app.on_event("startup")
 async def startup_event():
-    """
-    🚀 애플리케이션 시작 시 실행
-    """
-    print("🎯 찰나(Chalna) API 서버 시작!")
-    print("📖 API 문서: http://localhost:8000/swagger")
+    print("🚀 찰나(Chalna) API 서버가 시작되었습니다!")
+    print("📚 API 문서: http://localhost:8000/swagger")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    🛑 애플리케이션 종료 시 실행
-    """
-    print("👋 찰나(Chalna) API 서버 종료!")
+@app.get("/", summary="루트 엔드포인트", description="API 서버 상태 확인")
+async def root():
+    return {
+        "message": "찰나(Chalna) API 서버에 오신 것을 환영합니다!",
+        "version": "1.0.0",
+        "docs": "/swagger",
+        "health": "/health"
+    }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        reload_dirs=["app"],
-    ) 
+@app.get("/health", summary="헬스 체크", description="서버 상태 확인")
+async def health_check():
+    return {"status": "healthy", "message": "서버가 정상적으로 작동 중입니다"}
+
+# API 라우터 등록
+app.include_router(auth_router, prefix="/auth", tags=["인증"])
+app.include_router(users_router, prefix="/users", tags=["사용자 관리"])
+app.include_router(events_router, prefix="/events", tags=["경조사 이벤트"])
+app.include_router(ledgers_router, prefix="/ledgers", tags=["장부 관리"])
+app.include_router(schedules_router, prefix="/schedules", tags=["일정 관리"]) 
