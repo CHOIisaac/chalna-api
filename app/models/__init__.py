@@ -1,6 +1,14 @@
-# 데이터 모델들
-from .user import User
-from .event import Event
-from .ceremonial_money import CeremonialMoney
+"""
+모델 패키지 초기화
+"""
+from app.models.user import User
+from app.models.event import Event
+from app.models.ledger import Ledger
+from app.models.schedule import Schedule
 
-__all__ = ["User", "Event", "CeremonialMoney"] 
+__all__ = [
+    "User",
+    "Event", 
+    "Ledger",
+    "Schedule"
+] 
