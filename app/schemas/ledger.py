@@ -5,6 +5,8 @@ from datetime import date
 from typing import Optional, List
 from pydantic import BaseModel, Field, validator
 
+from app.core.constants import EntryType
+
 
 class LedgerBase(BaseModel):
     """장부 기본 스키마"""
@@ -22,7 +24,7 @@ class LedgerBase(BaseModel):
     @validator('entry_type')
     def validate_entry_type(cls, v):
         """기록 타입 검증"""
-        if v not in ['income', 'expense']:
+        if v not in [EntryType.INCOME, EntryType.EXPENSE]:
             raise ValueError('entry_type은 income 또는 expense여야 합니다')
         return v
 
@@ -48,7 +50,7 @@ class LedgerUpdate(BaseModel):
     @validator('entry_type')
     def validate_entry_type(cls, v):
         """기록 타입 검증"""
-        if v is not None and v not in ['income', 'expense']:
+        if v is not None and v not in [EntryType.INCOME, EntryType.EXPENSE]:
             raise ValueError('entry_type은 income 또는 expense여야 합니다')
         return v
 
@@ -105,6 +107,13 @@ class LedgerQuickAdd(BaseModel):
     event_date: Optional[date] = Field(None, description="경조사 날짜")
     memo: Optional[str] = Field(None, description="메모")
 
+    @validator('entry_type')
+    def validate_entry_type(cls, v):
+        """기록 타입 검증"""
+        if v not in [EntryType.INCOME, EntryType.EXPENSE]:
+            raise ValueError('entry_type은 income 또는 expense여야 합니다')
+        return v
+
 
 class LedgerSearch(BaseModel):
     """장부 검색 스키마"""
@@ -122,7 +131,7 @@ ledger_examples = {
         "summary": "경조사비 지출 기록",
         "value": {
             "amount": 100000,
-            "entry_type": "expense",
+            "entry_type": EntryType.EXPENSE,
             "event_type": "결혼식",
             "event_name": "김철수 결혼식",
             "event_date": "2024-06-15",
@@ -137,7 +146,7 @@ ledger_examples = {
         "summary": "빠른 경조사비 기록",
         "value": {
             "amount": 50000,
-            "entry_type": "expense",
+            "entry_type": EntryType.EXPENSE,
             "event_type": "장례식",
             "counterparty_name": "박영희",
             "memo": "조의금 5만원"
@@ -147,7 +156,7 @@ ledger_examples = {
         "summary": "장부 검색",
         "value": {
             "q": "김철수",
-            "entry_type": "expense",
+            "entry_type": EntryType.EXPENSE,
             "event_type": "결혼식",
             "start_date": "2024-01-01",
             "end_date": "2024-12-31"
