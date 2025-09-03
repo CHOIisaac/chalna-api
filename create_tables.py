@@ -3,7 +3,7 @@
 데이터베이스 테이블 생성 스크립트
 """
 from app.core.database import engine, Base
-from app.models import User, Event, CeremonialMoney, Schedule
+from app.models import User, Event, Ledger, Schedule
 
 def create_tables():
     """모든 테이블 생성"""
@@ -16,7 +16,7 @@ def create_tables():
     print("\n📋 생성된 테이블:")
     print("- users (사용자)")
     print("- events (경조사 이벤트)")
-    print("- ceremonial_money (경조사비)")
+    print("- ledgers (경조사비 수입지출 장부)")
     print("- schedules (경조사 일정)")
     
     # 테이블 정보 출력
@@ -36,7 +36,7 @@ def create_sample_data():
     print("\n🌱 샘플 데이터를 생성합니다...")
     
     from app.core.database import SessionLocal
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, date
     
     db = SessionLocal()
     
@@ -71,19 +71,39 @@ def create_sample_data():
         db.refresh(event)
         print("✅ 테스트 경조사 이벤트 생성 완료")
         
-        # 경조사비 생성
-        ceremonial_money = CeremonialMoney(
+        # 경조사비 지출 기록
+        expense_ledger = Ledger(
             user_id=user.id,
-            event_id=event.id,
             amount=100000,
-            given_date=datetime.now() - timedelta(days=5),
-            contact_name="김철수",
-            contact_phone="010-9876-5432",
+            entry_type="expense",
+            event_type="결혼식",
+            event_name="김철수 결혼식",
+            event_date=date.today() + timedelta(days=30),
+            location="그랜드 호텔 3층 그랜드볼룸",
+            counterparty_name="김철수",
+            counterparty_phone="010-9876-5432",
             relationship_type="대학동기",
             memo="축의금 10만원"
         )
-        db.add(ceremonial_money)
-        print("✅ 테스트 경조사비 생성 완료")
+        db.add(expense_ledger)
+        print("✅ 테스트 경조사비 지출 기록 생성 완료")
+        
+        # 경조사비 수입 기록 (돌잔치)
+        income_ledger = Ledger(
+            user_id=user.id,
+            amount=50000,
+            entry_type="income",
+            event_type="돌잔치",
+            event_name="내 돌잔치",
+            event_date=date.today() - timedelta(days=10),
+            location="우리집",
+            counterparty_name="이민수",
+            counterparty_phone="010-1111-2222",
+            relationship_type="직장동료",
+            memo="돌잔치 축하금"
+        )
+        db.add(income_ledger)
+        print("✅ 테스트 경조사비 수입 기록 생성 완료")
         
         # 경조사 일정 생성
         schedule = Schedule(
