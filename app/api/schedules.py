@@ -33,7 +33,7 @@ def create_schedule(
     db.commit()
     db.refresh(db_schedule)
     
-    return db_schedule
+    return ScheduleResponse.from_orm(db_schedule)
 
 
 @router.get("/", response_model=List[ScheduleResponse], summary="일정 목록 조회", description="사용자의 모든 일정을 조회합니다.")
@@ -48,7 +48,7 @@ def get_schedules(
         Schedule.user_id == current_user_id
     ).offset(skip).limit(limit).all()
     
-    return schedules
+    return [ScheduleResponse.from_orm(schedule) for schedule in schedules]
 
 
 @router.get("/{schedule_id}", response_model=ScheduleResponse, summary="일정 상세 조회", description="특정 일정의 상세 정보를 조회합니다.")
@@ -66,7 +66,7 @@ def get_schedule(
     if not schedule:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다")
     
-    return schedule
+    return ScheduleResponse.from_orm(schedule)
 
 
 @router.put("/{schedule_id}", response_model=ScheduleResponse, summary="일정 수정", description="기존 일정을 수정합니다.")
@@ -93,7 +93,7 @@ def update_schedule(
     db.commit()
     db.refresh(db_schedule)
     
-    return db_schedule
+    return ScheduleResponse.from_orm(db_schedule)
 
 
 @router.delete("/{schedule_id}", summary="일정 삭제", description="일정을 삭제합니다.")
@@ -208,7 +208,30 @@ def get_schedule_statistics(
     db: Session = Depends(get_db)
 ):
     """일정 통계 조회"""
-    return Schedule.get_schedule_statistics(current_user_id)
+    # 기본 통계 계산
+    total_schedules = db.query(Schedule).filter(Schedule.user_id == current_user_id).count()
+    
+    # 오늘 일정 수
+    today = datetime.now().date()
+    today_schedules = db.query(Schedule).filter(
+        Schedule.user_id == current_user_id,
+        Schedule.start_time >= today,
+        Schedule.start_time < today + timedelta(days=1)
+    ).count()
+    
+    # 다가오는 일정 수 (7일)
+    future_date = datetime.now() + timedelta(days=7)
+    upcoming_schedules = db.query(Schedule).filter(
+        Schedule.user_id == current_user_id,
+        Schedule.start_time > datetime.now(),
+        Schedule.start_time <= future_date
+    ).count()
+    
+    return {
+        "total_schedules": total_schedules,
+        "today_schedules": today_schedules,
+        "upcoming_schedules": upcoming_schedules
+    }
 
 
 @router.post("/quick-add", response_model=ScheduleResponse, summary="빠른 일정 추가", description="간단한 정보로 일정을 빠르게 추가합니다.")
@@ -231,7 +254,7 @@ def create_quick_schedule(
     db.commit()
     db.refresh(db_schedule)
     
-    return db_schedule
+    return ScheduleResponse.from_orm(db_schedule)
 
 
 @router.get("/upcoming", response_model=List[ScheduleResponse], summary="다가오는 일정", description="앞으로의 일정을 조회합니다.")
@@ -250,7 +273,7 @@ def get_upcoming_schedules(
         Schedule.start_time <= end_date
     ).order_by(Schedule.start_time).all()
     
-    return schedules
+    return [ScheduleResponse.from_orm(schedule) for schedule in schedules]
 
 
 @router.get("/today", response_model=List[ScheduleResponse], summary="오늘 일정", description="오늘의 일정을 조회합니다.")
@@ -267,4 +290,4 @@ def get_today_schedules(
         Schedule.start_time < today + timedelta(days=1)
     ).order_by(Schedule.start_time).all()
     
-    return schedules
+    return [ScheduleResponse.from_orm(schedule) for schedule in schedules]
