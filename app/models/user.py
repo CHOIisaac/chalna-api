@@ -1,131 +1,90 @@
 """
-👤 사용자 모델
-
-경조사 관리 앱의 사용자 정보를 관리합니다.
+User 모델 - 사용자 정보 관리
 """
-
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.orm import relationship
-import enum
+from sqlalchemy.sql import func
+from passlib.context import CryptContext
 
 from app.core.database import Base
 
-
-class UserStatus(enum.Enum):
-    """사용자 상태"""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    SUSPENDED = "suspended"
+# 비밀번호 해싱을 위한 컨텍스트
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class User(Base):
-    """
-    사용자 모델
-    """
+    """사용자 모델"""
     __tablename__ = "users"
-    
-    # 🔑 기본 정보
+
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    username = Column(String(50), unique=True, index=True, nullable=False, comment="사용자명")
+    email = Column(String(100), unique=True, index=True, nullable=False, comment="이메일")
+    hashed_password = Column(String(255), nullable=False, comment="해시된 비밀번호")
+    full_name = Column(String(100), nullable=False, comment="실명")
+    phone = Column(String(20), comment="전화번호")
     
-    # 👤 개인 정보
-    full_name = Column(String(100), nullable=False)
-    nickname = Column(String(50), index=True)
-    phone = Column(String(20))
-    birth_date = Column(DateTime)
+    # 사용자 상태
+    is_active = Column(Boolean, default=True, comment="활성 상태")
+    is_verified = Column(Boolean, default=False, comment="이메일 인증 상태")
     
-    # 🏠 주소 정보
-    address = Column(Text)
-    city = Column(String(50))
-    region = Column(String(50))  # 시/도
+    # 알림 설정 (사용자 전체)
+    push_notification_enabled = Column(Boolean, default=True, comment="푸시 알림 활성화")
+    notification_advance_hours = Column(Integer, default=2, comment="알림 시간 (시간 단위, 기본값: 2시간 전)")
     
-    # 🎯 앱 설정
-    is_active = Column(Boolean, default=True)
-    is_verified = Column(Boolean, default=False)
-    status = Column(Enum(UserStatus), default=UserStatus.ACTIVE)
-    
-    # 🔔 알림 설정
-    notification_enabled = Column(Boolean, default=True)
-    email_notification = Column(Boolean, default=True)
-    sms_notification = Column(Boolean, default=False)
-    
-    # 📱 앱 사용 설정
-    language = Column(String(10), default="ko")
-    timezone = Column(String(50), default="Asia/Seoul")
-    currency = Column(String(10), default="KRW")
-    
-    # 📊 통계 정보
-    total_events = Column(Integer, default=0)
-    total_gifts_given = Column(Integer, default=0)
-    total_gifts_received = Column(Integer, default=0)
-    
-    # 🕐 타임스탬프
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-    last_login = Column(DateTime)
-    
-    # 🔗 관계 설정
-    # 내가 생성한 이벤트들
+    # 메타데이터
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # 관계
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
-    
-    # 내가 기록한 경조사비들
     ceremonial_money_given = relationship("CeremonialMoney", back_populates="user", cascade="all, delete-orphan")
-    
-    # 내가 생성한 일정들
     schedules = relationship("Schedule", back_populates="user", cascade="all, delete-orphan")
-    
-    def __repr__(self):
-        return f"<User(id={self.id}, email={self.email}, name={self.full_name})>"
-    
+
+    def set_password(self, password: str):
+        """비밀번호 해싱"""
+        self.hashed_password = pwd_context.hash(password)
+
+    def verify_password(self, password: str) -> bool:
+        """비밀번호 검증"""
+        return pwd_context.verify(password, self.hashed_password)
+
     def to_dict(self):
-        """모델을 딕셔너리로 변환"""
+        """딕셔너리로 변환"""
         return {
             "id": self.id,
+            "username": self.username,
             "email": self.email,
             "full_name": self.full_name,
-            "nickname": self.nickname,
             "phone": self.phone,
-            "city": self.city,
-            "region": self.region,
             "is_active": self.is_active,
             "is_verified": self.is_verified,
-            "status": self.status.value if self.status else None,
-            "language": self.language,
-            "timezone": self.timezone,
-            "currency": self.currency,
-            "total_events": self.total_events,
-            "total_gifts_given": self.total_gifts_given,
-            "total_gifts_received": self.total_gifts_received,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "last_login": self.last_login,
+            "push_notification_enabled": self.push_notification_enabled,
+            "notification_advance_hours": self.notification_advance_hours,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
-    
-    @property
-    def is_premium(self):
-        """프리미엄 사용자 여부 (추후 구현)"""
-        return False
-    
-    @property
-    def gift_balance(self):
-        """선물 수지 (받은 것 - 준 것)"""
-        return self.total_gifts_received - self.total_gifts_given
-    
-    def update_stats(self, db):
-        """통계 정보 업데이트"""
-        from app.models.event import Event
-        from app.models.ceremonial_money import CeremonialMoney
+
+    def update_stats(self):
+        """사용자 통계 업데이트"""
+        # 경조사비 통계
+        total_given = sum(money.amount for money in self.ceremonial_money_given)
+        total_events = len(self.events)
+        total_schedules = len(self.schedules)
         
-        # 이벤트 수 업데이트
-        self.total_events = db.query(Event).filter(Event.user_id == self.id).count()
+        return {
+            "total_given": total_given,
+            "total_events": total_events,
+            "total_schedules": total_schedules
+        }
+
+    def should_receive_notifications(self) -> bool:
+        """알림을 받아야 하는지 확인"""
+        return self.is_active and self.push_notification_enabled
+
+    def get_notification_time(self, schedule_start_time):
+        """일정에 대한 알림 시간 계산"""
+        if not schedule_start_time or not self.push_notification_enabled:
+            return None
         
-        # 경조사비 통계 업데이트
-        ceremonial_money_given = db.query(CeremonialMoney).filter(CeremonialMoney.giver_id == self.id).count()
-        ceremonial_money_received = db.query(CeremonialMoney).filter(CeremonialMoney.receiver_id == self.id).count()
-        
-        self.total_gifts_given = ceremonial_money_given
-        self.total_gifts_received = ceremonial_money_received
-        
-        db.commit() 
+        from datetime import timedelta
+        return schedule_start_time - timedelta(hours=self.notification_advance_hours) 
