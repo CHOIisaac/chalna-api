@@ -37,7 +37,7 @@ class User(Base):
 
     # 관계
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
-    ceremonial_money_given = relationship("CeremonialMoney", back_populates="user", cascade="all, delete-orphan")
+    ledgers = relationship("Ledger", back_populates="user", cascade="all, delete-orphan")
     schedules = relationship("Schedule", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password: str):
@@ -66,13 +66,16 @@ class User(Base):
 
     def update_stats(self):
         """사용자 통계 업데이트"""
-        # 경조사비 통계
-        total_given = sum(money.amount for money in self.ceremonial_money_given)
+        # 장부 통계
+        total_income = sum(ledger.amount for ledger in self.ledgers if ledger.is_income)
+        total_expense = sum(ledger.amount for ledger in self.ledgers if ledger.is_expense)
         total_events = len(self.events)
         total_schedules = len(self.schedules)
         
         return {
-            "total_given": total_given,
+            "total_income": total_income,
+            "total_expense": total_expense,
+            "balance": total_income - total_expense,
             "total_events": total_events,
             "total_schedules": total_schedules
         }
