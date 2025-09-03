@@ -5,6 +5,8 @@ from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
+from app.core.constants import EventType, ScheduleType
+
 
 class ScheduleBase(BaseModel):
     """일정 기본 스키마"""
@@ -12,7 +14,7 @@ class ScheduleBase(BaseModel):
     start_time: datetime = Field(..., description="시작 시간")
     location: Optional[str] = Field(None, max_length=500, description="위치 (경조사 장소)")
     event_id: Optional[int] = Field(None, description="경조사 ID (선택적)")
-    event_type: Optional[str] = Field(None, max_length=50, description="경조사 타입 (결혼식, 장례식 등)")
+    event_type: Optional[EventType] = Field(None, description="경조사 타입 (결혼식, 장례식 등)")
     memo: Optional[str] = Field(None, description="간단한 메모")
 
 
@@ -27,7 +29,7 @@ class ScheduleUpdate(BaseModel):
     start_time: Optional[datetime] = Field(None, description="시작 시간")
     location: Optional[str] = Field(None, max_length=500, description="위치 (경조사 장소)")
     event_id: Optional[int] = Field(None, description="경조사 ID (선택적)")
-    event_type: Optional[str] = Field(None, max_length=50, description="경조사 타입 (결혼식, 장례식 등)")
+    event_type: Optional[EventType] = Field(None, description="경조사 타입 (결혼식, 장례식 등)")
     memo: Optional[str] = Field(None, description="간단한 메모")
 
 
@@ -59,7 +61,7 @@ class ScheduleSummary(BaseModel):
     title: str
     start_time: datetime
     location: Optional[str]
-    event_type: Optional[str]
+    event_type: Optional[EventType]
     is_today: bool
     is_upcoming: bool
 
@@ -82,7 +84,7 @@ class ScheduleQuickAdd(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="일정 제목")
     start_time: datetime = Field(..., description="시작 시간")
     location: Optional[str] = Field(None, max_length=500, description="위치 (경조사 장소)")
-    event_type: Optional[str] = Field(None, max_length=50, description="경조사 타입 (결혼식, 장례식 등)")
+    event_type: Optional[EventType] = Field(None, description="경조사 타입 (결혼식, 장례식 등)")
     memo: Optional[str] = Field(None, description="간단한 메모")
 
 
@@ -94,26 +96,26 @@ schedule_examples = {
             "title": "김철수 결혼식",
             "start_time": "2024-06-15T14:00:00",
             "location": "그랜드 호텔 3층 그랜드볼룸",
-            "event_type": "결혼식",
+            "event_type": EventType.WEDDING,
             "memo": "축의금 10만원 준비"
         }
     },
-    "update": {
-        "summary": "일정 수정",
-        "value": {
-            "title": "김철수 결혼식 (수정)",
-            "location": "그랜드 호텔 3층 그랜드볼룸",
-            "memo": "축의금 10만원 준비, 선물도 추가"
-        }
-    },
     "quick_add": {
-        "summary": "빠른 일정 추가",
+        "summary": "빠른 일정 등록",
         "value": {
             "title": "박영희 장례식",
             "start_time": "2024-06-20T10:00:00",
-            "location": "서울추모공원",
-            "event_type": "장례식",
-            "memo": "조의금 5만원"
+            "event_type": EventType.FUNERAL,
+            "memo": "조의금 5만원 준비"
+        }
+    },
+    "search": {
+        "summary": "일정 검색",
+        "value": {
+            "q": "결혼식",
+            "event_type": EventType.WEDDING,
+            "start_date": "2024-06-01T00:00:00",
+            "end_date": "2024-06-30T23:59:59"
         }
     }
 }

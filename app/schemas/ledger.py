@@ -3,16 +3,16 @@ Ledger 스키마 - 경조사비 수입지출 장부
 """
 from datetime import date
 from typing import Optional, List
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
-from app.core.constants import EntryType
+from app.core.constants import EntryType, EventType
 
 
 class LedgerBase(BaseModel):
     """장부 기본 스키마"""
     amount: int = Field(..., gt=0, description="금액")
-    entry_type: str = Field(..., description="기록 타입 (income: 수입, expense: 지출)")
-    event_type: Optional[str] = Field(None, max_length=50, description="경조사 타입 (결혼식, 장례식, 돌잔치 등)")
+    entry_type: EntryType = Field(..., description="기록 타입 (income: 수입, expense: 지출)")
+    event_type: Optional[EventType] = Field(None, description="경조사 타입 (결혼식, 장례식, 돌잔치 등)")
     event_name: Optional[str] = Field(None, max_length=200, description="경조사 이름 (예: 김철수 결혼식)")
     event_date: Optional[date] = Field(None, description="경조사 날짜")
     location: Optional[str] = Field(None, max_length=500, description="경조사 장소")
@@ -20,13 +20,6 @@ class LedgerBase(BaseModel):
     counterparty_phone: Optional[str] = Field(None, max_length=20, description="상대방 전화번호")
     relationship_type: Optional[str] = Field(None, max_length=50, description="관계 타입")
     memo: Optional[str] = Field(None, description="메모")
-
-    @validator('entry_type')
-    def validate_entry_type(cls, v):
-        """기록 타입 검증"""
-        if v not in [EntryType.INCOME, EntryType.EXPENSE]:
-            raise ValueError('entry_type은 income 또는 expense여야 합니다')
-        return v
 
 
 class LedgerCreate(LedgerBase):
@@ -37,8 +30,8 @@ class LedgerCreate(LedgerBase):
 class LedgerUpdate(BaseModel):
     """장부 기록 수정 스키마"""
     amount: Optional[int] = Field(None, gt=0, description="금액")
-    entry_type: Optional[str] = Field(None, description="기록 타입 (income: 수입, expense: 지출)")
-    event_type: Optional[str] = Field(None, max_length=50, description="경조사 타입")
+    entry_type: Optional[EntryType] = Field(None, description="기록 타입 (income: 수입, expense: 지출)")
+    event_type: Optional[EventType] = Field(None, description="경조사 타입")
     event_name: Optional[str] = Field(None, max_length=200, description="경조사 이름")
     event_date: Optional[date] = Field(None, description="경조사 날짜")
     location: Optional[str] = Field(None, max_length=500, description="경조사 장소")
@@ -46,13 +39,6 @@ class LedgerUpdate(BaseModel):
     counterparty_phone: Optional[str] = Field(None, max_length=20, description="상대방 전화번호")
     relationship_type: Optional[str] = Field(None, max_length=50, description="관계 타입")
     memo: Optional[str] = Field(None, description="메모")
-
-    @validator('entry_type')
-    def validate_entry_type(cls, v):
-        """기록 타입 검증"""
-        if v is not None and v not in [EntryType.INCOME, EntryType.EXPENSE]:
-            raise ValueError('entry_type은 income 또는 expense여야 합니다')
-        return v
 
 
 class LedgerResponse(LedgerBase):
@@ -81,8 +67,8 @@ class LedgerSummary(BaseModel):
     """장부 요약 스키마"""
     id: int
     amount: int
-    entry_type: str
-    event_type: Optional[str]
+    entry_type: EntryType
+    event_type: Optional[EventType]
     event_name: Optional[str]
     event_date: Optional[date]
     counterparty_name: Optional[str]
@@ -101,25 +87,18 @@ class LedgerStatistics(BaseModel):
 class LedgerQuickAdd(BaseModel):
     """장부 빠른 추가 스키마"""
     amount: int = Field(..., gt=0, description="금액")
-    entry_type: str = Field(..., description="기록 타입 (income: 수입, expense: 지출)")
-    event_type: str = Field(..., max_length=50, description="경조사 타입")
+    entry_type: EntryType = Field(..., description="기록 타입 (income: 수입, expense: 지출)")
+    event_type: EventType = Field(..., description="경조사 타입")
     counterparty_name: str = Field(..., max_length=100, description="상대방 이름")
     event_date: Optional[date] = Field(None, description="경조사 날짜")
     memo: Optional[str] = Field(None, description="메모")
-
-    @validator('entry_type')
-    def validate_entry_type(cls, v):
-        """기록 타입 검증"""
-        if v not in [EntryType.INCOME, EntryType.EXPENSE]:
-            raise ValueError('entry_type은 income 또는 expense여야 합니다')
-        return v
 
 
 class LedgerSearch(BaseModel):
     """장부 검색 스키마"""
     q: Optional[str] = Field(None, description="검색어 (이름, 장소, 메모)")
-    entry_type: Optional[str] = Field(None, description="기록 타입 (income/expense)")
-    event_type: Optional[str] = Field(None, description="경조사 타입")
+    entry_type: Optional[EntryType] = Field(None, description="기록 타입 (income/expense)")
+    event_type: Optional[EventType] = Field(None, description="경조사 타입")
     start_date: Optional[date] = Field(None, description="시작 날짜")
     end_date: Optional[date] = Field(None, description="종료 날짜")
     relationship_type: Optional[str] = Field(None, description="관계 타입")
@@ -132,7 +111,7 @@ ledger_examples = {
         "value": {
             "amount": 100000,
             "entry_type": EntryType.EXPENSE,
-            "event_type": "결혼식",
+            "event_type": EventType.WEDDING,
             "event_name": "김철수 결혼식",
             "event_date": "2024-06-15",
             "location": "그랜드 호텔 3층 그랜드볼룸",
@@ -147,7 +126,7 @@ ledger_examples = {
         "value": {
             "amount": 50000,
             "entry_type": EntryType.EXPENSE,
-            "event_type": "장례식",
+            "event_type": EventType.FUNERAL,
             "counterparty_name": "박영희",
             "memo": "조의금 5만원"
         }
@@ -157,7 +136,7 @@ ledger_examples = {
         "value": {
             "q": "김철수",
             "entry_type": EntryType.EXPENSE,
-            "event_type": "결혼식",
+            "event_type": EventType.WEDDING,
             "start_date": "2024-01-01",
             "end_date": "2024-12-31"
         }
