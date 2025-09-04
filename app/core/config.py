@@ -27,16 +27,16 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # 🗃️ 데이터베이스 설정
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/chalna_db"  # 개발용도 PostgreSQL 사용
+    DATABASE_URL: str = "postgresql://chalna_user:chalna_password@localhost:5434/chalna"  # 로컬 개발용
     DATABASE_URL_ASYNC: Optional[str] = None
     
     # PostgreSQL 설정
     POSTGRES_SERVER: str = "localhost"
-    POSTGRES_HOST: str = "localhost"  # Docker용 호스트명
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "password"
-    POSTGRES_DB: str = "chalna_db"
-    POSTGRES_PORT: int = 5432
+    POSTGRES_HOST: str = "localhost"  # 로컬 개발용
+    POSTGRES_USER: str = "chalna_user"
+    POSTGRES_PASSWORD: str = "chalna_password"
+    POSTGRES_DB: str = "chalna"
+    POSTGRES_PORT: int = 5434
     
     @validator("DATABASE_URL", pre=True)
     def assemble_db_connection(cls, v: Optional[str], values: dict) -> str:
