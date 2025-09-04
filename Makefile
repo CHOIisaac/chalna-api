@@ -94,6 +94,6 @@ dev-local:  ## 🚀 로컬 개발 환경 (인프라는 도커, 서버는 로컬)
 	@echo "⏳ 데이터베이스 준비 대기 중..."
 	@sleep 10
 	@echo "🚀 로컬 서버 시작..."
-	ENV_FILE=.env.local uv run fastapi dev main.py
+	uv run fastapi dev main.py
 
 .DEFAULT_GOAL := help
