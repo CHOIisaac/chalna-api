@@ -3,11 +3,13 @@ FastAPI 메인 애플리케이션
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 from app.api import (
     auth_router, users_router, events_router, 
     ledgers_router, schedules_router
 )
+from app.core.security import security
 
 app = FastAPI(
     title="찰나(Chalna) API",
@@ -32,6 +34,10 @@ app = FastAPI(
         "url": "https://opensource.org/licenses/MIT",
     },
     docs_url="/swagger",
+    swagger_ui_parameters={
+        "defaultModelsExpandDepth": -1,
+        "persistAuthorization": True,
+    },
     openapi_tags=[
         {
             "name": "인증",
@@ -82,6 +88,37 @@ async def root():
 @app.get("/health", summary="헬스 체크", description="서버 상태 확인")
 async def health_check():
     return {"status": "healthy", "message": "서버가 정상적으로 작동 중입니다"}
+
+# OpenAPI 스키마에 보안 정의 추가
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # 보안 스키마 추가
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    
+    # 보안이 필요한 엔드포인트에 보안 적용
+    for path in openapi_schema["paths"]:
+        if path != "/api/v1/auth/login" and path != "/api/v1/auth/token":
+            openapi_schema["paths"][path]["security"] = [{"BearerAuth": []}]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 # API 라우터 등록 (사용자가 원했던 /api/v1/ prefix 사용)
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["인증"])

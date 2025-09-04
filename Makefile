@@ -42,6 +42,9 @@ db-create:  ## 🏗️ 데이터베이스 테이블 생성
 db-create-samples:  ## 🌱 데이터베이스 테이블 생성 + 샘플 데이터
 	uv run python create_tables.py --with-samples
 
+create-admin:  ## 👑 관리자 계정 생성
+	uv run python create_admin.py
+
 db-reset:  ## 🔄 데이터베이스 초기화 (주의: 모든 데이터 삭제!)
 	uv run python -c "from app.core.database import Base, engine; Base.metadata.drop_all(bind=engine); print('🗑️ 모든 테이블 삭제 완료!')"
 	uv run python create_tables.py
