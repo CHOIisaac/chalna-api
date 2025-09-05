@@ -5,12 +5,13 @@ Event 스키마 - 경조사 이벤트 데이터 검증
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from app.core.pydantic_config import BaseModelWithDatetime
 
 from app.core.constants import EventType
 
 
-class EventBase(BaseModel):
+class EventBase(BaseModelWithDatetime):
     """이벤트 기본 스키마"""
 
     title: str = Field(..., max_length=200, description="이벤트 제목")
@@ -28,7 +29,7 @@ class EventCreate(EventBase):
     pass
 
 
-class EventUpdate(BaseModel):
+class EventUpdate(BaseModelWithDatetime):
     """이벤트 수정 스키마"""
 
     title: Optional[str] = Field(None, max_length=200, description="이벤트 제목")
@@ -45,8 +46,8 @@ class EventResponse(EventBase):
 
     id: int
     user_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -57,15 +58,15 @@ class EventInDB(EventBase):
 
     id: int
     user_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
 # 캘린더 관련 스키마
-class CalendarEventBase(BaseModel):
+class CalendarEventBase(BaseModelWithDatetime):
     """캘린더 이벤트 기본 스키마"""
 
     title: str = Field(..., max_length=200, description="이벤트 제목")
@@ -83,7 +84,7 @@ class CalendarEventCreate(CalendarEventBase):
     pass
 
 
-class CalendarEventUpdate(BaseModel):
+class CalendarEventUpdate(BaseModelWithDatetime):
     """캘린더 이벤트 수정 스키마"""
 
     title: Optional[str] = Field(None, max_length=200, description="이벤트 제목")
@@ -100,8 +101,8 @@ class CalendarEventResponse(CalendarEventBase):
 
     id: int
     user_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -112,15 +113,15 @@ class CalendarEventInDB(CalendarEventBase):
 
     id: int
     user_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
 # 이벤트 목록 조회용 스키마
-class EventListResponse(BaseModel):
+class EventListResponse(BaseModelWithDatetime):
     """이벤트 목록 응답 스키마"""
 
     id: int
@@ -129,13 +130,13 @@ class EventListResponse(BaseModel):
     event_date: datetime
     location: Optional[str]
     is_external: bool
-    created_at: str
+    created_at: datetime
 
     class Config:
         from_attributes = True
 
 
-class EventCalendarResponse(BaseModel):
+class EventCalendarResponse(BaseModelWithDatetime):
     """이벤트 캘린더 응답 스키마"""
 
     id: int
@@ -151,7 +152,7 @@ class EventCalendarResponse(BaseModel):
 
 
 # 이벤트 통계 스키마
-class EventStatistics(BaseModel):
+class EventStatistics(BaseModelWithDatetime):
     """이벤트 통계 스키마"""
 
     total_events: int
@@ -163,7 +164,7 @@ class EventStatistics(BaseModel):
 
 
 # 이벤트 검색 스키마
-class EventSearch(BaseModel):
+class EventSearch(BaseModelWithDatetime):
     """이벤트 검색 스키마"""
 
     q: Optional[str] = Field(None, description="검색어 (제목, 설명, 메모)")

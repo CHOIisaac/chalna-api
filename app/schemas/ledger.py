@@ -2,15 +2,16 @@
 Ledger 스키마 - 경조사비 수입지출 장부
 """
 
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from app.core.pydantic_config import BaseModelWithDatetime
 
 from app.core.constants import EntryType, EventType
 
 
-class LedgerBase(BaseModel):
+class LedgerBase(BaseModelWithDatetime):
     """장부 기본 스키마"""
 
     amount: int = Field(..., gt=0, description="금액")
@@ -43,7 +44,7 @@ class LedgerCreate(LedgerBase):
     pass
 
 
-class LedgerUpdate(BaseModel):
+class LedgerUpdate(BaseModelWithDatetime):
     """장부 기록 수정 스키마"""
 
     amount: Optional[int] = Field(None, gt=0, description="금액")
@@ -71,8 +72,8 @@ class LedgerResponse(LedgerBase):
 
     id: int
     user_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -83,14 +84,14 @@ class LedgerInDB(LedgerBase):
 
     id: int
     user_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
-class LedgerSummary(BaseModel):
+class LedgerSummary(BaseModelWithDatetime):
     """장부 요약 스키마"""
 
     id: int
@@ -100,10 +101,11 @@ class LedgerSummary(BaseModel):
     event_name: Optional[str]
     event_date: Optional[date]
     counterparty_name: Optional[str]
-    created_at: str
+    created_at: datetime
 
 
-class LedgerStatistics(BaseModel):
+
+class LedgerStatistics(BaseModelWithDatetime):
     """장부 통계 스키마"""
 
     total_income: int
@@ -113,7 +115,7 @@ class LedgerStatistics(BaseModel):
     total_records: int
 
 
-class LedgerQuickAdd(BaseModel):
+class LedgerQuickAdd(BaseModelWithDatetime):
     """장부 빠른 추가 스키마"""
 
     amount: int = Field(..., gt=0, description="금액")
@@ -126,7 +128,7 @@ class LedgerQuickAdd(BaseModel):
     memo: Optional[str] = Field(None, description="메모")
 
 
-class LedgerSearch(BaseModel):
+class LedgerSearch(BaseModelWithDatetime):
     """장부 검색 스키마"""
 
     q: Optional[str] = Field(None, description="검색어 (이름, 장소, 메모)")

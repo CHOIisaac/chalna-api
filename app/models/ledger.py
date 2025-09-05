@@ -2,7 +2,7 @@
 Ledger 모델 - 경조사비 수입지출 장부
 """
 
-from sqlalchemy import Column, Date, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -35,8 +35,8 @@ class Ledger(Base):
 
     # 메타데이터
     memo = Column(Text, comment="메모")
-    created_at = Column(String(50), server_default=func.now())
-    updated_at = Column(String(50), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # 관계
     user = relationship("User", back_populates="ledgers")

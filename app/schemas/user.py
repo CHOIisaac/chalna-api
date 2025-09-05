@@ -3,11 +3,13 @@ User 스키마 - 사용자 데이터 검증 및 직렬화
 """
 
 from typing import Optional
+from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import EmailStr, Field
+from app.core.pydantic_config import BaseModelWithDatetime
 
 
-class UserBase(BaseModel):
+class UserBase(BaseModelWithDatetime):
     """사용자 기본 스키마"""
 
     username: str = Field(..., min_length=3, max_length=50, description="사용자명")
@@ -22,7 +24,7 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=8, description="비밀번호")
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(BaseModelWithDatetime):
     """사용자 수정 스키마"""
 
     username: Optional[str] = Field(
@@ -43,6 +45,8 @@ class UserInDB(UserBase):
     is_verified: bool
     push_notification_enabled: bool
     notification_advance_hours: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -56,33 +60,35 @@ class UserResponse(UserBase):
     is_verified: bool
     push_notification_enabled: bool
     notification_advance_hours: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
-class UserLogin(BaseModel):
+class UserLogin(BaseModelWithDatetime):
     """사용자 로그인 스키마"""
 
     username: str = Field(..., description="사용자명 또는 이메일")
     password: str = Field(..., description="비밀번호")
 
 
-class Token(BaseModel):
+class Token(BaseModelWithDatetime):
     """토큰 스키마"""
 
     access_token: str
     token_type: str = "bearer"
 
 
-class UserPasswordChange(BaseModel):
+class UserPasswordChange(BaseModelWithDatetime):
     """비밀번호 변경 스키마"""
 
     current_password: str = Field(..., description="현재 비밀번호")
     new_password: str = Field(..., min_length=8, description="새 비밀번호")
 
 
-class NotificationSettings(BaseModel):
+class NotificationSettings(BaseModelWithDatetime):
     """알림 설정 스키마"""
 
     push_notification_enabled: bool = Field(..., description="푸시 알림 활성화")
@@ -91,7 +97,7 @@ class NotificationSettings(BaseModel):
     )
 
 
-class NotificationSettingsUpdate(BaseModel):
+class NotificationSettingsUpdate(BaseModelWithDatetime):
     """알림 설정 수정 스키마"""
 
     push_notification_enabled: Optional[bool] = Field(

@@ -5,12 +5,13 @@ Schedule 스키마 - 경조사 일정 관리 (MVP)
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from app.core.pydantic_config import BaseModelWithDatetime
 
 from app.core.constants import EventType
 
 
-class ScheduleBase(BaseModel):
+class ScheduleBase(BaseModelWithDatetime):
     """일정 기본 스키마"""
 
     title: str = Field(..., min_length=1, max_length=200, description="일정 제목")
@@ -31,7 +32,7 @@ class ScheduleCreate(ScheduleBase):
     pass
 
 
-class ScheduleUpdate(BaseModel):
+class ScheduleUpdate(BaseModelWithDatetime):
     """일정 수정 스키마"""
 
     title: Optional[str] = Field(
@@ -54,7 +55,7 @@ class ScheduleResponse(ScheduleBase):
     id: int
     user_id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -66,13 +67,13 @@ class ScheduleInDB(ScheduleBase):
     id: int
     user_id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
-class ScheduleSummary(BaseModel):
+class ScheduleSummary(BaseModelWithDatetime):
     """일정 요약 스키마"""
 
     id: int
@@ -84,14 +85,14 @@ class ScheduleSummary(BaseModel):
     is_upcoming: bool
 
 
-class DailySchedule(BaseModel):
+class DailySchedule(BaseModelWithDatetime):
     """일별 일정 스키마"""
 
     date: str
     schedules: list[ScheduleSummary]
 
 
-class WeeklySchedule(BaseModel):
+class WeeklySchedule(BaseModelWithDatetime):
     """주별 일정 스키마"""
 
     week_start: str
@@ -99,7 +100,7 @@ class WeeklySchedule(BaseModel):
     daily_schedules: list[DailySchedule]
 
 
-class ScheduleQuickAdd(BaseModel):
+class ScheduleQuickAdd(BaseModelWithDatetime):
     """일정 빠른 추가 스키마"""
 
     title: str = Field(..., min_length=1, max_length=200, description="일정 제목")
