@@ -93,19 +93,32 @@ def custom_openapi():
         routes=app.routes,
     )
 
-    # 보안 스키마 추가
+    # 보안 스키마 추가 (Swagger UI용)
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
+            "description": "JWT 토큰을 입력하세요"
         }
     }
-
-    # 보안이 필요한 엔드포인트에 보안 적용
+    
+    # 인증이 필요한 엔드포인트에 보안 설정 추가
+    protected_paths = [
+        "/api/v1/users/me",
+        "/api/v1/users/me/password",
+        "/api/v1/users/me/notification-settings",
+        "/api/v1/users/me/stats",
+        "/api/v1/events/",
+        "/api/v1/ledgers/",
+        "/api/v1/schedules/"
+    ]
+    
     for path in openapi_schema["paths"]:
-        if path != "/api/v1/auth/login" and path != "/api/v1/auth/token":
-            openapi_schema["paths"][path]["security"] = [{"BearerAuth": []}]
+        if any(protected_path in path for protected_path in protected_paths):
+            for method in openapi_schema["paths"][path]:
+                if method in ["get", "post", "put", "patch", "delete"]:
+                    openapi_schema["paths"][path][method]["security"] = [{"BearerAuth": []}]
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
