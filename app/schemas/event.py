@@ -1,8 +1,10 @@
 """
 Event 스키마 - 경조사 이벤트 데이터 검증
 """
+
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from app.core.constants import EventType
@@ -10,6 +12,7 @@ from app.core.constants import EventType
 
 class EventBase(BaseModel):
     """이벤트 기본 스키마"""
+
     title: str = Field(..., max_length=200, description="이벤트 제목")
     event_type: EventType = Field(..., description="이벤트 타입")
     event_date: datetime = Field(..., description="이벤트 날짜")
@@ -21,11 +24,13 @@ class EventBase(BaseModel):
 
 class EventCreate(EventBase):
     """이벤트 생성 스키마"""
+
     pass
 
 
 class EventUpdate(BaseModel):
     """이벤트 수정 스키마"""
+
     title: Optional[str] = Field(None, max_length=200, description="이벤트 제목")
     event_type: Optional[EventType] = Field(None, description="이벤트 타입")
     event_date: Optional[datetime] = Field(None, description="이벤트 날짜")
@@ -37,6 +42,7 @@ class EventUpdate(BaseModel):
 
 class EventResponse(EventBase):
     """이벤트 응답 스키마"""
+
     id: int
     user_id: int
     created_at: str
@@ -48,6 +54,7 @@ class EventResponse(EventBase):
 
 class EventInDB(EventBase):
     """데이터베이스 이벤트 스키마"""
+
     id: int
     user_id: int
     created_at: str
@@ -60,6 +67,7 @@ class EventInDB(EventBase):
 # 캘린더 관련 스키마
 class CalendarEventBase(BaseModel):
     """캘린더 이벤트 기본 스키마"""
+
     title: str = Field(..., max_length=200, description="이벤트 제목")
     event_type: EventType = Field(..., description="이벤트 타입")
     event_date: datetime = Field(..., description="이벤트 날짜")
@@ -71,11 +79,13 @@ class CalendarEventBase(BaseModel):
 
 class CalendarEventCreate(CalendarEventBase):
     """캘린더 이벤트 생성 스키마"""
+
     pass
 
 
 class CalendarEventUpdate(BaseModel):
     """캘린더 이벤트 수정 스키마"""
+
     title: Optional[str] = Field(None, max_length=200, description="이벤트 제목")
     event_type: Optional[EventType] = Field(None, description="이벤트 타입")
     event_date: Optional[datetime] = Field(None, description="이벤트 날짜")
@@ -87,6 +97,7 @@ class CalendarEventUpdate(BaseModel):
 
 class CalendarEventResponse(CalendarEventBase):
     """캘린더 이벤트 응답 스키마"""
+
     id: int
     user_id: int
     created_at: str
@@ -98,6 +109,7 @@ class CalendarEventResponse(CalendarEventBase):
 
 class CalendarEventInDB(CalendarEventBase):
     """데이터베이스 캘린더 이벤트 스키마"""
+
     id: int
     user_id: int
     created_at: str
@@ -110,6 +122,7 @@ class CalendarEventInDB(CalendarEventBase):
 # 이벤트 목록 조회용 스키마
 class EventListResponse(BaseModel):
     """이벤트 목록 응답 스키마"""
+
     id: int
     title: str
     event_type: EventType
@@ -124,6 +137,7 @@ class EventListResponse(BaseModel):
 
 class EventCalendarResponse(BaseModel):
     """이벤트 캘린더 응답 스키마"""
+
     id: int
     title: str
     event_type: EventType
@@ -139,6 +153,7 @@ class EventCalendarResponse(BaseModel):
 # 이벤트 통계 스키마
 class EventStatistics(BaseModel):
     """이벤트 통계 스키마"""
+
     total_events: int
     upcoming_events: int
     past_events: int
@@ -150,6 +165,7 @@ class EventStatistics(BaseModel):
 # 이벤트 검색 스키마
 class EventSearch(BaseModel):
     """이벤트 검색 스키마"""
+
     q: Optional[str] = Field(None, description="검색어 (제목, 설명, 메모)")
     event_type: Optional[EventType] = Field(None, description="이벤트 타입")
     start_date: Optional[datetime] = Field(None, description="시작 날짜")
@@ -169,16 +185,16 @@ event_examples = {
             "location": "그랜드 호텔 3층 그랜드볼룸",
             "description": "대학동기 김철수의 결혼식",
             "memo": "축의금 10만원 준비",
-            "is_external": False
-        }
+            "is_external": False,
+        },
     },
     "update": {
         "summary": "이벤트 정보 수정",
         "value": {
             "title": "김철수 결혼식 (수정)",
             "location": "그랜드 호텔 5층 로얄볼룸",
-            "memo": "축의금 10만원, 선물 준비"
-        }
+            "memo": "축의금 10만원, 선물 준비",
+        },
     },
     "search": {
         "summary": "이벤트 검색",
@@ -186,7 +202,7 @@ event_examples = {
             "q": "결혼식",
             "event_type": EventType.WEDDING,
             "start_date": "2024-01-01T00:00:00",
-            "end_date": "2024-12-31T23:59:59"
-        }
-    }
+            "end_date": "2024-12-31T23:59:59",
+        },
+    },
 }

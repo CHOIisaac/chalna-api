@@ -1,26 +1,29 @@
 """
 Ledger 모델 - 경조사비 수입지출 장부
 """
-from datetime import date
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
+
+from sqlalchemy import Column, Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
+from app.core.constants import EntryType, EventType
 from app.core.database import Base
-from app.core.constants import EventType, EntryType
 
 
 class Ledger(Base):
     """경조사비 수입지출 장부 모델"""
+
     __tablename__ = "ledgers"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
+
     # 장부 기록 정보
     amount = Column(Integer, nullable=False, comment="금액")
-    entry_type = Column(String(20), nullable=False, comment="기록 타입 (income/expense: 수입/지출)")
-    
+    entry_type = Column(
+        String(20), nullable=False, comment="기록 타입 (income/expense: 수입/지출)"
+    )
+
     # 경조사 정보
     event_type = Column(String(50), comment="경조사 타입 (결혼식, 장례식, 돌잔치 등)")
     event_name = Column(String(200), comment="경조사 이름 (예: 김철수 결혼식)")
@@ -29,7 +32,7 @@ class Ledger(Base):
     counterparty_name = Column(String(100), comment="상대방 이름")
     counterparty_phone = Column(String(20), comment="상대방 전화번호")
     relationship_type = Column(String(50), comment="관계 타입")
-    
+
     # 메타데이터
     memo = Column(Text, comment="메모")
     created_at = Column(String(50), server_default=func.now())
@@ -89,6 +92,7 @@ class Ledger(Base):
     def event_type_description(self):
         """이벤트 타입 설명"""
         from app.core.constants import EVENT_TYPE_DESCRIPTIONS
+
         try:
             event_type = EventType(self.event_type)
             return EVENT_TYPE_DESCRIPTIONS.get(event_type, "설명 없음")
@@ -99,6 +103,7 @@ class Ledger(Base):
     def event_type_color(self):
         """이벤트 타입 색상"""
         from app.core.constants import EVENT_TYPE_COLORS
+
         try:
             event_type = EventType(self.event_type)
             return EVENT_TYPE_COLORS.get(event_type, "#A9A9A9")
@@ -109,6 +114,7 @@ class Ledger(Base):
     def default_amount(self):
         """기본 축의금/조의금 금액"""
         from app.core.constants import EVENT_TYPE_DEFAULT_AMOUNTS
+
         try:
             event_type = EventType(self.event_type)
             return EVENT_TYPE_DEFAULT_AMOUNTS.get(event_type, 30000)
@@ -119,49 +125,71 @@ class Ledger(Base):
     def get_ledger_statistics(user_id: int):
         """사용자의 장부 통계 반환"""
         from app.core.database import get_db
+
         db = next(get_db())
-        
+
         # 전체 통계
-        total_income = db.query(Ledger).filter(
-            Ledger.user_id == user_id,
-            Ledger.entry_type == EntryType.INCOME
-        ).with_entities(func.sum(Ledger.amount)).scalar() or 0
-        
-        total_expense = db.query(Ledger).filter(
-            Ledger.user_id == user_id,
-            Ledger.entry_type == EntryType.EXPENSE
-        ).with_entities(func.sum(Ledger.amount)).scalar() or 0
-        
+        total_income = (
+            db.query(Ledger)
+            .filter(Ledger.user_id == user_id, Ledger.entry_type == EntryType.INCOME)
+            .with_entities(func.sum(Ledger.amount))
+            .scalar()
+            or 0
+        )
+
+        total_expense = (
+            db.query(Ledger)
+            .filter(Ledger.user_id == user_id, Ledger.entry_type == EntryType.EXPENSE)
+            .with_entities(func.sum(Ledger.amount))
+            .scalar()
+            or 0
+        )
+
         # 경조사 타입별 통계
         event_type_stats = {}
-        event_types = db.query(Ledger.event_type).filter(
-            Ledger.user_id == user_id
-        ).distinct().all()
-        
+        event_types = (
+            db.query(Ledger.event_type)
+            .filter(Ledger.user_id == user_id)
+            .distinct()
+            .all()
+        )
+
         for event_type in event_types:
             if event_type[0]:
-                income = db.query(Ledger).filter(
-                    Ledger.user_id == user_id,
-                    Ledger.event_type == event_type[0],
-                    Ledger.entry_type == EntryType.INCOME
-                ).with_entities(func.sum(Ledger.amount)).scalar() or 0
-                
-                expense = db.query(Ledger).filter(
-                    Ledger.user_id == user_id,
-                    Ledger.event_type == event_type[0],
-                    Ledger.entry_type == EntryType.EXPENSE
-                ).with_entities(func.sum(Ledger.amount)).scalar() or 0
-                
+                income = (
+                    db.query(Ledger)
+                    .filter(
+                        Ledger.user_id == user_id,
+                        Ledger.event_type == event_type[0],
+                        Ledger.entry_type == EntryType.INCOME,
+                    )
+                    .with_entities(func.sum(Ledger.amount))
+                    .scalar()
+                    or 0
+                )
+
+                expense = (
+                    db.query(Ledger)
+                    .filter(
+                        Ledger.user_id == user_id,
+                        Ledger.event_type == event_type[0],
+                        Ledger.entry_type == EntryType.EXPENSE,
+                    )
+                    .with_entities(func.sum(Ledger.amount))
+                    .scalar()
+                    or 0
+                )
+
                 event_type_stats[event_type[0]] = {
                     "income": income,
                     "expense": expense,
-                    "balance": income - expense
+                    "balance": income - expense,
                 }
-        
+
         return {
             "total_income": total_income,
             "total_expense": total_expense,
             "balance": total_income - total_expense,
             "event_type_stats": event_type_stats,
-            "total_records": db.query(Ledger).filter(Ledger.user_id == user_id).count()
+            "total_records": db.query(Ledger).filter(Ledger.user_id == user_id).count(),
         }

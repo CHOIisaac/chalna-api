@@ -4,10 +4,11 @@
 SQLAlchemy를 사용한 데이터베이스 설정
 """
 
-from sqlalchemy import create_engine, MetaData
+from collections.abc import Generator
+
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-from typing import Generator
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 
@@ -34,7 +35,7 @@ metadata = MetaData()
 def get_db() -> Generator[Session, None, None]:
     """
     데이터베이스 세션 의존성 주입
-    
+
     Yields:
         Session: 데이터베이스 세션
     """
@@ -66,7 +67,7 @@ def init_db():
     """
     # 테이블 생성
     create_tables()
-    
+
     # 초기 데이터 삽입 (필요한 경우)
     db = SessionLocal()
     try:
@@ -81,7 +82,7 @@ def init_db():
 def test_db_connection():
     """
     데이터베이스 연결 테스트
-    
+
     Returns:
         bool: 연결 성공 여부
     """
@@ -113,7 +114,7 @@ def reset_db():
 def get_db_info():
     """
     데이터베이스 정보 조회
-    
+
     Returns:
         dict: 데이터베이스 정보
     """
@@ -122,4 +123,4 @@ def get_db_info():
         "engine": str(engine.url),
         "is_connected": test_db_connection(),
         "tables": list(Base.metadata.tables.keys()),
-    } 
+    }

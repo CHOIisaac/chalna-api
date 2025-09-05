@@ -1,10 +1,11 @@
 """
 User 모델 - 사용자 정보 관리
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
+
+from passlib.context import CryptContext
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from passlib.context import CryptContext
 
 from app.core.database import Base
 
@@ -14,31 +15,44 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class User(Base):
     """사용자 모델"""
+
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, index=True, nullable=False, comment="사용자명")
-    email = Column(String(100), unique=True, index=True, nullable=False, comment="이메일")
+    username = Column(
+        String(50), unique=True, index=True, nullable=False, comment="사용자명"
+    )
+    email = Column(
+        String(100), unique=True, index=True, nullable=False, comment="이메일"
+    )
     hashed_password = Column(String(255), nullable=False, comment="해시된 비밀번호")
     full_name = Column(String(100), nullable=False, comment="실명")
     phone = Column(String(20), comment="전화번호")
-    
+
     # 사용자 상태
     is_active = Column(Boolean, default=True, comment="활성 상태")
     is_verified = Column(Boolean, default=False, comment="이메일 인증 상태")
-    
+
     # 알림 설정 (사용자 전체)
-    push_notification_enabled = Column(Boolean, default=True, comment="푸시 알림 활성화")
-    notification_advance_hours = Column(Integer, default=2, comment="알림 시간 (시간 단위, 기본값: 2시간 전)")
-    
+    push_notification_enabled = Column(
+        Boolean, default=True, comment="푸시 알림 활성화"
+    )
+    notification_advance_hours = Column(
+        Integer, default=2, comment="알림 시간 (시간 단위, 기본값: 2시간 전)"
+    )
+
     # 메타데이터
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # 관계
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
-    ledgers = relationship("Ledger", back_populates="user", cascade="all, delete-orphan")
-    schedules = relationship("Schedule", back_populates="user", cascade="all, delete-orphan")
+    ledgers = relationship(
+        "Ledger", back_populates="user", cascade="all, delete-orphan"
+    )
+    schedules = relationship(
+        "Schedule", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def set_password(self, password: str):
         """비밀번호 해싱"""
@@ -68,16 +82,18 @@ class User(Base):
         """사용자 통계 업데이트"""
         # 장부 통계
         total_income = sum(ledger.amount for ledger in self.ledgers if ledger.is_income)
-        total_expense = sum(ledger.amount for ledger in self.ledgers if ledger.is_expense)
+        total_expense = sum(
+            ledger.amount for ledger in self.ledgers if ledger.is_expense
+        )
         total_events = len(self.events)
         total_schedules = len(self.schedules)
-        
+
         return {
             "total_income": total_income,
             "total_expense": total_expense,
             "balance": total_income - total_expense,
             "total_events": total_events,
-            "total_schedules": total_schedules
+            "total_schedules": total_schedules,
         }
 
     def should_receive_notifications(self) -> bool:
@@ -88,6 +104,7 @@ class User(Base):
         """일정에 대한 알림 시간 계산"""
         if not schedule_start_time or not self.push_notification_enabled:
             return None
-        
+
         from datetime import timedelta
-        return schedule_start_time - timedelta(hours=self.notification_advance_hours) 
+
+        return schedule_start_time - timedelta(hours=self.notification_advance_hours)
