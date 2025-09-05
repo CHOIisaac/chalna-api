@@ -19,7 +19,7 @@ class Schedule(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    event_id = Column(Integer, ForeignKey("events.id"), comment="연관된 이벤트 ID")
+    # event_id = Column(Integer, ForeignKey("events.id"), comment="연관된 이벤트 ID")
 
     # 일정 기본 정보
     title = Column(String(200), nullable=False, comment="일정 제목")
@@ -38,7 +38,7 @@ class Schedule(Base):
 
     # 관계
     user = relationship("User", back_populates="schedules")
-    event = relationship("Event", back_populates="schedules")
+    # event = relationship("Event", back_populates="schedules")
 
     def to_dict(self):
         """딕셔너리로 변환"""

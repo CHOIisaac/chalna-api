@@ -37,12 +37,12 @@ class Event(Base):
 
     # 관계
     user = relationship("User", back_populates="events")
-    ledgers = relationship(
-        "Ledger", back_populates="event", cascade="all, delete-orphan"
-    )
-    schedules = relationship(
-        "Schedule", back_populates="event", cascade="all, delete-orphan"
-    )
+    # ledgers = relationship(
+    #     "Ledger", back_populates="event", cascade="all, delete-orphan"
+    # )
+    # schedules = relationship(
+    #     "Schedule", back_populates="event", cascade="all, delete-orphan"
+    # )
 
     def to_dict(self):
         """딕셔너리로 변환"""
