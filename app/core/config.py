@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # 🔐 보안 설정
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
     # 🗃️ 데이터베이스 설정
     DATABASE_URL: str = (
