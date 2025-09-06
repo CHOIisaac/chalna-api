@@ -2,7 +2,7 @@
 Schedule 스키마 - 경조사 일정 관리 (MVP)
 """
 
-from datetime import datetime
+from datetime import datetime, date, time
 from typing import Optional
 
 from pydantic import Field
@@ -15,7 +15,8 @@ class ScheduleBase(BaseModelWithDatetime):
     """일정 기본 스키마"""
 
     title: str = Field(..., min_length=1, max_length=200, description="일정 제목")
-    start_time: datetime = Field(..., description="시작 시간")
+    event_date: date = Field(..., description="일정 날짜")
+    event_time: time = Field(..., description="일정 시간")
     location: Optional[str] = Field(
         None, max_length=500, description="위치 (경조사 장소)"
     )
@@ -54,6 +55,12 @@ class ScheduleResponse(ScheduleBase):
 
     id: int
     user_id: int
+    title: str
+    event_date: datetime
+    event_time: time
+    location: Optional[str]
+    event_type: Optional[EventType]
+    memo: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime] = None
 
