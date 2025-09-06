@@ -19,7 +19,7 @@ class ScheduleBase(BaseModelWithDatetime):
     location: Optional[str] = Field(
         None, max_length=500, description="위치 (경조사 장소)"
     )
-    event_id: Optional[int] = Field(None, description="경조사 ID (선택적)")
+    # event_id: Optional[int] = Field(None, description="경조사 ID (선택적)")
     event_type: Optional[EventType] = Field(
         None, description="경조사 타입 (결혼식, 장례식 등)"
     )
