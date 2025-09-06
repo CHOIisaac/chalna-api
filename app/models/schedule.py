@@ -2,9 +2,9 @@
 Schedule 모델 - 경조사 일정 관리
 """
 
-from datetime import datetime
+from datetime import datetime, date, time
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Date, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -23,11 +23,11 @@ class Schedule(Base):
 
     # 일정 기본 정보
     title = Column(String(200), nullable=False, comment="일정 제목")
-    start_time = Column(DateTime, nullable=False, comment="시작 시간")
-    end_time = Column(DateTime, comment="종료 시간")
-    location = Column(String(500), comment="장소")
+    event_date = Column(Date, nullable=False, comment="일정 날짜")
+    event_time = Column(Time, nullable=False, comment="일정 시간")
 
     # 일정 상세 정보
+    location = Column(String(500), comment="장소")
     description = Column(Text, comment="일정 설명")
     event_type = Column(String(50), comment="경조사 타입")
     memo = Column(Text, comment="메모")
@@ -47,8 +47,6 @@ class Schedule(Base):
             "user_id": self.user_id,
             "event_id": self.event_id,
             "title": self.title,
-            "start_time": self.start_time.isoformat() if self.start_time else None,
-            "end_time": self.end_time.isoformat() if self.end_time else None,
             "location": self.location,
             "description": self.description,
             "event_type": self.event_type,
@@ -56,6 +54,11 @@ class Schedule(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+    @property
+    def start_time(self):
+        """날짜와 시간을 합쳐서 datetime 반환"""
+        return datetime.combine(self.event_date, self.event_time)
 
     @property
     def is_upcoming(self):
