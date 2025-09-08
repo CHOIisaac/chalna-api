@@ -203,42 +203,6 @@ def get_expense_ledgers(
     return ledgers
 
 
-@router.get(
-    "/balance",
-    summary="수지 잔액 조회",
-    description="총 수입, 지출, 잔액을 조회합니다.",
-)
-def get_balance(
-    current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)
-):
-    """수지 잔액 조회"""
-    total_income = (
-        db.query(Ledger)
-        .filter(
-            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.INCOME
-        )
-        .with_entities(func.sum(Ledger.amount))
-        .scalar()
-        or 0
-    )
-
-    total_expense = (
-        db.query(Ledger)
-        .filter(
-            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.EXPENSE
-        )
-        .with_entities(func.sum(Ledger.amount))
-        .scalar()
-        or 0
-    )
-
-    return {
-        "total_income": total_income,
-        "total_expense": total_expense,
-        "balance": total_income - total_expense,
-    }
-
-
 @router.post(
     "/search",
     response_model=list[LedgerResponse],
