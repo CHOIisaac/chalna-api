@@ -10,7 +10,7 @@ class UserSettings(Base):
     __tablename__ = "user_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, unique=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
 
     # 알림 설정
     notifications_enabled = Column(Boolean, nullable=False, default=True, comment="전체 알림 켜기/끄기")
