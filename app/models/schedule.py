@@ -8,7 +8,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from app.core.constants import EventType
+from app.core.constants import EventType, StatusType
 from app.core.database import Base
 
 
@@ -25,10 +25,10 @@ class Schedule(Base):
     title = Column(String(200), nullable=False, comment="일정 제목")
     event_date = Column(Date, nullable=False, comment="일정 날짜")
     event_time = Column(Time, nullable=False, comment="일정 시간")
+    status = Column(String(20), default=StatusType.UPCOMING, comment="일정 상태")
 
     # 일정 상세 정보
     location = Column(String(500), comment="장소")
-    description = Column(Text, comment="일정 설명")
     event_type = Column(String(50), comment="경조사 타입")
     memo = Column(Text, comment="메모")
 
@@ -124,28 +124,6 @@ class Schedule(Base):
             return self.event_type
 
     @property
-    def event_type_description(self):
-        """이벤트 타입 설명"""
-        from app.core.constants import EVENT_TYPE_DESCRIPTIONS
-
-        try:
-            event_type = EventType(self.event_type)
-            return EVENT_TYPE_DESCRIPTIONS.get(event_type, "설명 없음")
-        except ValueError:
-            return "설명 없음"
-
-    @property
-    def event_type_color(self):
-        """이벤트 타입 색상"""
-        from app.core.constants import EVENT_TYPE_COLORS
-
-        try:
-            event_type = EventType(self.event_type)
-            return EVENT_TYPE_COLORS.get(event_type, "#A9A9A9")
-        except ValueError:
-            return "#A9A9A9"
-
-    @property
     def duration_minutes(self):
         """일정 지속 시간 (분)"""
         if not self.start_time or not self.end_time:
@@ -210,3 +188,10 @@ class Schedule(Base):
             .order_by(Schedule.start_time)
             .all()
         )
+
+    @property
+    def computed_status(self):
+        """현재 시간 기준으로 status 자동 계산"""
+        if self.start_time and self.start_time < datetime.now():
+            return StatusType.COMPLETED
+        return StatusType.UPCOMING

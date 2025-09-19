@@ -8,7 +8,7 @@ from typing import Optional
 from pydantic import Field
 from app.core.pydantic_config import BaseModelWithDatetime
 
-from app.core.constants import EventType
+from app.core.constants import EventType, StatusType
 
 
 class ScheduleBase(BaseModelWithDatetime):
@@ -24,6 +24,7 @@ class ScheduleBase(BaseModelWithDatetime):
     event_type: Optional[EventType] = Field(
         None, description="경조사 타입 (결혼식, 장례식 등)"
     )
+    status: Optional[StatusType] = Field(StatusType.UPCOMING, description="일정 상태")
     memo: Optional[str] = Field(None, description="간단한 메모")
 
 
@@ -39,14 +40,15 @@ class ScheduleUpdate(BaseModelWithDatetime):
     title: Optional[str] = Field(
         None, min_length=1, max_length=200, description="일정 제목"
     )
-    start_time: Optional[datetime] = Field(None, description="시작 시간")
+    event_date: Optional[date] = Field(None, description="일정 날짜")
+    event_time: Optional[time] = Field(None, description="일정 시간")
     location: Optional[str] = Field(
         None, max_length=500, description="위치 (경조사 장소)"
     )
-    event_id: Optional[int] = Field(None, description="경조사 ID (선택적)")
     event_type: Optional[EventType] = Field(
         None, description="경조사 타입 (결혼식, 장례식 등)"
     )
+    status: Optional[StatusType] = Field(None, description="일정 상태")
     memo: Optional[str] = Field(None, description="간단한 메모")
 
 
@@ -64,8 +66,19 @@ class ScheduleResponse(ScheduleBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    @classmethod
+    def from_schedule(cls, schedule):
+        """Schedule 모델에서 변환"""
+        return cls(
+            id=schedule.id,
+            title=schedule.title,
+            type=schedule.event_type,
+            date=schedule.event_date.isoformat() if schedule.event_date else None,
+            location=schedule.location,
+            time=schedule.event_time.strftime("%H:%M") if schedule.event_time else None,
+            status=schedule.status,
+            memo=schedule.memo,
+        )
 
 
 class ScheduleInDB(ScheduleBase):

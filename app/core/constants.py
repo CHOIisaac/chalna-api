@@ -50,8 +50,8 @@ class ScheduleType(str, Enum):
 class StatusType(str, Enum):
     """상태 타입"""
 
-    PENDING = "예정"
-    COMPLETED = "완료"
+    UPCOMING = "upcoming"
+    COMPLETED = "completed"
 
 
 class NotificationType(str, Enum):
