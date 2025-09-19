@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import or_, func
+from sqlalchemy.orm import Session
+from sqlalchemy import or_, func, extract
 
 from app.core.constants import StatusType
 from app.core.database import get_db
@@ -73,7 +73,6 @@ def get_schedule(
 
     schedule = (
         db.query(Schedule)
-        .options(selectinload(Schedule.user))  # 관계 미리 로딩
         .filter(Schedule.id == schedule_id, Schedule.user_id == current_user_id)
         .first()
     )
@@ -168,11 +167,10 @@ def get_schedules(
 ):
     """일정 목록 조회 - 필터링 완전 지원"""
 
-    # 기본 쿼리
+    # 기본 쿼리 (user 관계 로딩 불필요 - 성능 최적화)
     query = (
         db.query(Schedule)
         .filter(Schedule.user_id == current_user_id)
-        .options(selectinload(Schedule.user))
     )
 
     # 🔍 상태 필터링
@@ -331,47 +329,44 @@ def get_today_quick(
     }
 
 
-@router.get("/stats/summary", summary="일정 통계 요약")
+@router.get("/stats/summary", summary="일정 통계 요약 (최적화)")
 def get_schedule_stats(
         current_user_id: int = Depends(get_current_user_id),
         db: Session = Depends(get_db),
 ):
-    """대시보드용 통계 정보"""
+    """대시보드용 통계 정보 (한 번의 쿼리로 모든 통계 조회)"""
 
-    # 기본 통계
-    total_count = db.query(Schedule).filter(Schedule.user_id == current_user_id).count()
-
-    upcoming_count = (
-        db.query(Schedule)
-        .filter(
-            Schedule.user_id == current_user_id,
-            Schedule.status == StatusType.UPCOMING
-        )
-        .count()
-    )
-
-    completed_count = (
-        db.query(Schedule)
-        .filter(
-            Schedule.user_id == current_user_id,
-            Schedule.status == StatusType.COMPLETED
-        )
-        .count()
-    )
-
-    # 이번 달 일정
+    # 🚀 단일 쿼리로 모든 통계를 한 번에 조회 (성능 최적화)
     this_month_start = datetime.now().replace(day=1).date()
     next_month_start = (datetime.now().replace(day=1) + timedelta(days=32)).replace(day=1).date()
-
-    this_month_count = (
-        db.query(Schedule)
-        .filter(
-            Schedule.user_id == current_user_id,
-            Schedule.event_date >= this_month_start,
-            Schedule.event_date < next_month_start
+    
+    # 조건별 집계를 한 번의 쿼리로 처리
+    stats_result = (
+        db.query(
+            func.count(Schedule.id).label('total'),
+            func.sum(func.case(
+                (Schedule.status == StatusType.UPCOMING, 1),
+                else_=0
+            )).label('upcoming'),
+            func.sum(func.case(
+                (Schedule.status == StatusType.COMPLETED, 1), 
+                else_=0
+            )).label('completed'),
+            func.sum(func.case(
+                ((Schedule.event_date >= this_month_start) & 
+                 (Schedule.event_date < next_month_start), 1),
+                else_=0
+            )).label('this_month')
         )
-        .count()
+        .filter(Schedule.user_id == current_user_id)
+        .first()
     )
+    
+    # 결과 추출 (None 방지)
+    total_count = stats_result.total or 0
+    upcoming_count = int(stats_result.upcoming or 0)
+    completed_count = int(stats_result.completed or 0)
+    this_month_count = int(stats_result.this_month or 0)
 
     return {
         "success": True,
@@ -380,5 +375,97 @@ def get_schedule_stats(
             "upcoming": upcoming_count,
             "completed": completed_count,
             "this_month": this_month_count
+        }
+    }
+
+
+@router.get("/calendar/monthly", summary="월별 일정 달력 데이터 (최적화)")
+def get_monthly_calendar(
+    year: int = Query(..., description="연도 (예: 2025)"),
+    month: int = Query(..., ge=1, le=12, description="월 (1-12)"),
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """월별 달력 표시용 - 날짜별 일정 개수와 함께 (인덱스 최적화)"""
+    
+    # 🚀 인덱스 최적화: 날짜 범위로 필터링 (extract 대신 범위 사용)
+    try:
+        # 해당 월의 시작일과 마지막일 계산
+        month_start = datetime(year, month, 1).date()
+        if month == 12:
+            month_end = datetime(year + 1, 1, 1).date()
+        else:
+            month_end = datetime(year, month + 1, 1).date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="잘못된 년/월 값입니다")
+    
+    # 인덱스를 활용한 범위 쿼리로 성능 최적화
+    calendar_data = (
+        db.query(
+            Schedule.event_date,
+            func.count(Schedule.id).label('count')
+        )
+        .filter(
+            Schedule.user_id == current_user_id,
+            Schedule.event_date >= month_start,
+            Schedule.event_date < month_end
+        )
+        .group_by(Schedule.event_date)
+        .order_by(Schedule.event_date)  # 정렬 추가로 일관성 보장
+        .all()
+    )
+    
+    # 날짜별 데이터 정리
+    calendar_dates = []
+    for date_record in calendar_data:
+        calendar_dates.append({
+            "date": date_record.event_date.strftime("%Y-%m-%d"),
+            "count": date_record.count,
+            "has_schedules": True
+        })
+    
+    return {
+        "success": True,
+        "data": {
+            "year": year,
+            "month": month,
+            "dates": calendar_dates
+        }
+    }
+
+
+@router.get("/calendar/daily", summary="특정 날짜 일정 목록 (최적화)")
+def get_daily_schedules(
+    date: str = Query(..., description="조회할 날짜 (YYYY-MM-DD)"),
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """특정 날짜의 모든 일정 조회 - 시간순 정렬 (N+1 쿼리 방지)"""
+    
+    try:
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(
+            status_code=400, 
+            detail="올바른 날짜 형식이 아닙니다 (YYYY-MM-DD)"
+        )
+    
+    # 🚀 인덱스 최적화 (user 데이터 불필요하므로 제거)
+    schedules = (
+        db.query(Schedule)
+        .filter(
+            Schedule.user_id == current_user_id,
+            Schedule.event_date == target_date
+        )
+        .order_by(Schedule.event_time.asc())
+        .all()
+    )
+    
+    return {
+        "success": True,
+        "data": {
+            "date": date,
+            "schedules": schedules,  # ✅ 직접 반환 (최고 성능)
+            "total_count": len(schedules)
         }
     }
