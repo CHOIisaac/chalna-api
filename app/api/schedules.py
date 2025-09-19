@@ -28,7 +28,6 @@ router = APIRouter(tags=["일정 관리"])
 
 @router.post(
     "/",
-    response_model=ScheduleResponse,
     summary="일정 생성",
     description="새로운 경조사 일정을 생성합니다.",
 )
@@ -55,14 +54,13 @@ def create_schedule(
 
     return {
         "success": True,
-        "data": ScheduleResponse.from_schedule(db_schedule).dict(),
+        "data": db_schedule,  # ✅ 직접 반환 (최고 성능)
         "message": "일정이 생성되었습니다."
     }
 
 
 @router.get(
     "/{schedule_id}",
-    response_model=ScheduleResponse,
     summary="일정 상세 조회",
     description="특정 일정의 상세 정보를 조회합니다.",
 )
@@ -85,13 +83,12 @@ def get_schedule(
 
     return {
         "success": True,
-        "data": ScheduleResponse.from_schedule(schedule).dict()
+        "data": schedule  # ✅ 직접 반환 (최고 성능)
     }
 
 
 @router.put(
     "/{schedule_id}",
-    response_model=ScheduleResponse,
     summary="일정 수정",
     description="기존 일정을 수정합니다.",
 )
@@ -123,7 +120,7 @@ def update_schedule(
 
     return {
         "success": True,
-        "data": ScheduleResponse.from_schedule(db_schedule).dict(),
+        "data": db_schedule,  # ✅ 직접 반환 (최고 성능)
         "message": "일정이 수정되었습니다."
     }
 
@@ -210,7 +207,7 @@ def get_schedules(
 
     return {
         "success": True,
-        "data": [ScheduleResponse.from_schedule(schedule).dict() for schedule in schedules],
+        "data": schedules,  # ✅ 직접 반환 (최고 성능)
         "meta": {
             "total": total_count,
             "skip": skip,
@@ -305,7 +302,7 @@ def get_upcoming_quick(
 
     return {
         "success": True,
-        "data": [ScheduleResponse.from_schedule(s).dict() for s in schedules]
+        "data": schedules  # ✅ 직접 반환 (최고 성능)
     }
 
 
@@ -330,7 +327,7 @@ def get_today_quick(
 
     return {
         "success": True,
-        "data": [ScheduleResponse.from_schedule(s).dict() for s in schedules]
+        "data": schedules  # ✅ 직접 반환 (최고 성능)
     }
 
 

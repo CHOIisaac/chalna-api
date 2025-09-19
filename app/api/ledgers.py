@@ -1,6 +1,8 @@
 """
 Ledger API - 경조사비 수입지출 장부 관리
 """
+from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_
@@ -24,7 +26,6 @@ router = APIRouter(tags=["장부 관리"])
 
 @router.post(
     "/",
-    response_model=LedgerResponse,
     summary="장부 기록 생성",
     description="새로운 경조사비 수입지출 기록을 생성합니다.",
 )
@@ -40,7 +41,11 @@ def create_ledger(
     db.commit()
     db.refresh(db_ledger)
 
-    return db_ledger
+    return {
+        "success": True,
+        "data": db_ledger,  # ✅ 직접 반환 (최고 성능)
+        "message": "장부 기록이 생성되었습니다."
+    }
 
 
 @router.get("/", summary="장부 목록 조회 (필터링 및 검색 지원)")
@@ -129,7 +134,7 @@ def get_ledgers(
 
     return {
         "success": True,
-        "data": [LedgerResponse.from_orm(ledger).dict() for ledger in ledgers],
+        "data": ledgers,  # ✅ 직접 반환 (최고 성능)
         "meta": {
             "total": total_count,
             "skip": skip,
@@ -149,7 +154,6 @@ def get_ledgers(
 
 @router.get(
     "/{ledger_id}",
-    response_model=LedgerResponse,
     summary="장부 상세 조회",
     description="특정 장부 기록의 상세 정보를 조회합니다.",
 )
@@ -168,12 +172,14 @@ def get_ledger(
     if not ledger:
         raise HTTPException(status_code=404, detail="장부 기록을 찾을 수 없습니다")
 
-    return ledger
+    return {
+        "success": True,
+        "data": ledger  # ✅ 직접 반환 (최고 성능)
+    }
 
 
 @router.put(
     "/{ledger_id}",
-    response_model=LedgerResponse,
     summary="장부 기록 수정",
     description="기존 장부 기록을 수정합니다.",
 )
@@ -201,7 +207,11 @@ def update_ledger(
     db.commit()
     db.refresh(db_ledger)
 
-    return db_ledger
+    return {
+        "success": True,
+        "data": db_ledger,  # ✅ 직접 반환 (최고 성능)
+        "message": "장부 기록이 수정되었습니다."
+    }
 
 
 @router.delete(
@@ -225,61 +235,10 @@ def delete_ledger(
     db.delete(db_ledger)
     db.commit()
 
-    return {"message": "장부 기록이 삭제되었습니다"}
-
-
-@router.get(
-    "/income",
-    response_model=list[LedgerResponse],
-    summary="수입 내역 조회",
-    description="수입 내역만 조회합니다.",
-)
-def get_income_ledgers(
-    skip: int = Query(0, ge=0, description="건너뛸 항목 수"),
-    limit: int = Query(100, ge=1, le=1000, description="가져올 항목 수"),
-    current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-):
-    """수입 내역 조회"""
-    ledgers = (
-        db.query(Ledger)
-        .filter(
-            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.RECEIVED
-        )
-        .order_by(Ledger.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
-    return ledgers
-
-
-@router.get(
-    "/expense",
-    response_model=list[LedgerResponse],
-    summary="지출 내역 조회",
-    description="지출 내역만 조회합니다.",
-)
-def get_expense_ledgers(
-    skip: int = Query(0, ge=0, description="건너뛸 항목 수"),
-    limit: int = Query(100, ge=1, le=1000, description="가져올 항목 수"),
-    current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-):
-    """지출 내역 조회"""
-    ledgers = (
-        db.query(Ledger)
-        .filter(
-            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.GIVEN
-        )
-        .order_by(Ledger.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
-    return ledgers
+    return {
+        "success": True,
+        "message": "장부 기록이 삭제되었습니다."
+    }
 
 
 @router.get(
@@ -297,7 +256,6 @@ def get_ledger_statistics(
 
 @router.post(
     "/quick-add",
-    response_model=LedgerResponse,
     summary="빠른 장부 추가",
     description="간단한 정보로 장부 기록을 빠르게 추가합니다.",
 )
@@ -321,12 +279,15 @@ def create_quick_ledger(
     db.commit()
     db.refresh(db_ledger)
 
-    return db_ledger
+    return {
+        "success": True,
+        "data": db_ledger,  # ✅ 직접 반환 (최고 성능)
+        "message": "장부 기록이 빠르게 추가되었습니다."
+    }
 
 
 @router.get(
     "/event-type/{event_type}",
-    response_model=list[LedgerResponse],
     summary="경조사 타입별 조회",
     description="특정 경조사 타입의 장부 기록을 조회합니다.",
 )
@@ -347,7 +308,10 @@ def get_ledgers_by_event_type(
         .all()
     )
 
-    return ledgers
+    return {
+        "success": True,
+        "data": ledgers  # ✅ 직접 반환 (최고 성능)
+    }
 
 
 @router.get(
@@ -401,3 +365,41 @@ def get_relationship_statistics(
             }
 
     return relationship_stats
+
+
+@router.get("/filters/options", summary="장부 필터 옵션 목록")
+def get_ledger_filter_options(
+    current_user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """프론트엔드 필터 드롭다운용 옵션들"""
+    
+    # 기록 타입별 개수
+    entry_type_counts = (
+        db.query(
+            Ledger.entry_type,
+            func.count(Ledger.id).label('count')
+        )
+        .filter(Ledger.user_id == current_user_id)
+        .group_by(Ledger.entry_type)
+        .all()
+    )
+    
+    total_count = sum(e.count for e in entry_type_counts)
+    
+    return {
+        "success": True,
+        "data": {
+            "entry_type_options": [
+                {"value": "", "label": "전체", "count": total_count},
+                {"value": "given", "label": "나눔", "count": next((e.count for e in entry_type_counts if e.entry_type == EntryType.GIVEN), 0)},
+                {"value": "received", "label": "받음", "count": next((e.count for e in entry_type_counts if e.entry_type == EntryType.RECEIVED), 0)},
+            ],
+            "sort_options": [
+                {"value": "latest", "label": "최신순"},
+                {"value": "oldest", "label": "오래된순"},
+                {"value": "highest", "label": "높은금액순"},
+                {"value": "lowest", "label": "낮은금액순"}
+            ]
+        }
+    }
