@@ -61,14 +61,14 @@ class Ledger(Base):
         }
 
     @property
-    def is_income(self):
-        """수입인지 확인"""
-        return self.entry_type == EntryType.INCOME
+    def is_received(self):
+        """받은 금액인지 확인"""
+        return self.entry_type == EntryType.RECEIVED
 
     @property
-    def is_expense(self):
-        """지출인지 확인"""
-        return self.entry_type == EntryType.EXPENSE
+    def is_given(self):
+        """준 금액인지 확인"""
+        return self.entry_type == EntryType.GIVEN
 
     @property
     def formatted_amount(self):
@@ -129,17 +129,17 @@ class Ledger(Base):
         db = next(get_db())
 
         # 전체 통계
-        total_income = (
+        total_received = (
             db.query(Ledger)
-            .filter(Ledger.user_id == user_id, Ledger.entry_type == EntryType.INCOME)
+            .filter(Ledger.user_id == user_id, Ledger.entry_type == EntryType.RECEIVED)
             .with_entities(func.sum(Ledger.amount))
             .scalar()
             or 0
         )
 
-        total_expense = (
+        total_given = (
             db.query(Ledger)
-            .filter(Ledger.user_id == user_id, Ledger.entry_type == EntryType.EXPENSE)
+            .filter(Ledger.user_id == user_id, Ledger.entry_type == EntryType.GIVEN)
             .with_entities(func.sum(Ledger.amount))
             .scalar()
             or 0
@@ -156,24 +156,24 @@ class Ledger(Base):
 
         for event_type in event_types:
             if event_type[0]:
-                income = (
+                received = (
                     db.query(Ledger)
                     .filter(
                         Ledger.user_id == user_id,
                         Ledger.event_type == event_type[0],
-                        Ledger.entry_type == EntryType.INCOME,
+                        Ledger.entry_type == EntryType.RECEIVED,
                     )
                     .with_entities(func.sum(Ledger.amount))
                     .scalar()
                     or 0
                 )
 
-                expense = (
+                given = (
                     db.query(Ledger)
                     .filter(
                         Ledger.user_id == user_id,
                         Ledger.event_type == event_type[0],
-                        Ledger.entry_type == EntryType.EXPENSE,
+                        Ledger.entry_type == EntryType.GIVEN,
                     )
                     .with_entities(func.sum(Ledger.amount))
                     .scalar()
@@ -181,15 +181,15 @@ class Ledger(Base):
                 )
 
                 event_type_stats[event_type[0]] = {
-                    "income": income,
-                    "expense": expense,
-                    "balance": income - expense,
+                    "received": received,
+                    "given": given,
+                    "balance": received - given,
                 }
 
         return {
-            "total_income": total_income,
-            "total_expense": total_expense,
-            "balance": total_income - total_expense,
+            "total_received": total_received,
+            "total_given": total_given,
+            "balance": total_received - total_given,
             "event_type_stats": event_type_stats,
             "total_records": db.query(Ledger).filter(Ledger.user_id == user_id).count(),
         }

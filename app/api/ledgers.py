@@ -165,7 +165,7 @@ def get_income_ledgers(
     ledgers = (
         db.query(Ledger)
         .filter(
-            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.INCOME
+            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.RECEIVED
         )
         .order_by(Ledger.created_at.desc())
         .offset(skip)
@@ -192,7 +192,7 @@ def get_expense_ledgers(
     ledgers = (
         db.query(Ledger)
         .filter(
-            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.EXPENSE
+            Ledger.user_id == current_user_id, Ledger.entry_type == EntryType.GIVEN
         )
         .order_by(Ledger.created_at.desc())
         .offset(skip)
@@ -348,7 +348,7 @@ def get_relationship_statistics(
                 .filter(
                     Ledger.user_id == current_user_id,
                     Ledger.relationship_type == relationship[0],
-                    Ledger.entry_type == EntryType.INCOME,
+                    Ledger.entry_type == EntryType.RECEIVED,
                 )
                 .with_entities(func.sum(Ledger.amount))
                 .scalar()
@@ -360,7 +360,7 @@ def get_relationship_statistics(
                 .filter(
                     Ledger.user_id == current_user_id,
                     Ledger.relationship_type == relationship[0],
-                    Ledger.entry_type == EntryType.EXPENSE,
+                    Ledger.entry_type == EntryType.GIVEN,
                 )
                 .with_entities(func.sum(Ledger.amount))
                 .scalar()

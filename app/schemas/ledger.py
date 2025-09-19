@@ -147,7 +147,7 @@ ledger_examples = {
         "summary": "경조사비 지출 기록",
         "value": {
             "amount": 100000,
-            "entry_type": EntryType.EXPENSE,
+            "entry_type": EntryType.GIVEN,
             "event_type": EventType.WEDDING,
             "event_name": "김철수 결혼식",
             "event_date": "2024-06-15",
@@ -162,7 +162,7 @@ ledger_examples = {
         "summary": "빠른 경조사비 기록",
         "value": {
             "amount": 50000,
-            "entry_type": EntryType.EXPENSE,
+            "entry_type": EntryType.GIVEN,
             "event_type": EventType.FUNERAL,
             "counterparty_name": "박영희",
             "memo": "조의금 5만원",
@@ -172,7 +172,7 @@ ledger_examples = {
         "summary": "장부 검색",
         "value": {
             "q": "김철수",
-            "entry_type": EntryType.EXPENSE,
+            "entry_type": EntryType.GIVEN,
             "event_type": EventType.WEDDING,
             "start_date": "2024-01-01",
             "end_date": "2024-12-31",
