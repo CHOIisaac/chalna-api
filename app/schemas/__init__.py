@@ -6,6 +6,7 @@ from app.schemas.event import *
 from app.schemas.ledger import *
 from app.schemas.schedule import *
 from app.schemas.user import *
+from app.schemas.user_settings import *
 
 __all__ = [
     # User schemas
@@ -17,8 +18,11 @@ __all__ = [
     "UserLogin",
     "Token",
     "UserPasswordChange",
-    "NotificationSettings",
-    "NotificationSettingsUpdate",
+    # UserSettings schemas
+    "UserSettingsBase",
+    "UserSettingsCreate",
+    "UserSettingsUpdate",
+    "UserSettingsResponse",
     # Event schemas
     "EventBase",
     "EventCreate",

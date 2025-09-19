@@ -33,13 +33,6 @@ class User(Base):
     is_active = Column(Boolean, default=True, comment="활성 상태")
     is_verified = Column(Boolean, default=False, comment="이메일 인증 상태")
 
-    # 알림 설정 (사용자 전체)
-    push_notification_enabled = Column(
-        Boolean, default=True, comment="푸시 알림 활성화"
-    )
-    notification_advance_hours = Column(
-        Integer, default=2, comment="알림 시간 (시간 단위, 기본값: 2시간 전)"
-    )
 
     # 메타데이터
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -53,6 +46,7 @@ class User(Base):
     schedules = relationship(
         "Schedule", back_populates="user", cascade="all, delete-orphan"
     )
+    settings = relationship("UserSettings", back_populates="user", cascade="all, delete-orphan", uselist=False)  # 추가
 
     def set_password(self, password: str):
         """비밀번호 해싱"""
@@ -72,8 +66,6 @@ class User(Base):
             "phone": self.phone,
             "is_active": self.is_active,
             "is_verified": self.is_verified,
-            "push_notification_enabled": self.push_notification_enabled,
-            "notification_advance_hours": self.notification_advance_hours,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -98,13 +90,25 @@ class User(Base):
 
     def should_receive_notifications(self) -> bool:
         """알림을 받아야 하는지 확인"""
-        return self.is_active and self.push_notification_enabled
+        if not self.is_active:
+            return False
+
+        # UserSettings에서 알림 설정 확인
+        if self.settings:
+            return self.settings.notifications_enabled
+
+        return True  # 설정이 없으면 기본적으로 알림 받음
 
     def get_notification_time(self, schedule_start_time):
         """일정에 대한 알림 시간 계산"""
-        if not schedule_start_time or not self.push_notification_enabled:
+        if not schedule_start_time or not self.should_receive_notifications():
             return None
 
         from datetime import timedelta
 
-        return schedule_start_time - timedelta(hours=self.notification_advance_hours)
+        # UserSettings에서 알림 시간 가져오기
+        hours_before = 24  # 기본값
+        if self.settings:
+            hours_before = self.settings.reminder_hours_before
+
+        return schedule_start_time - timedelta(hours=hours_before)

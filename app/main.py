@@ -12,6 +12,7 @@ from app.api import (
     ledgers_router,
     schedules_router,
     users_router,
+    user_settings_router,
 )
 
 app = FastAPI(
@@ -132,3 +133,4 @@ app.include_router(users_router, prefix="/api/v1/users", tags=["사용자 관리
 app.include_router(events_router, prefix="/api/v1/events", tags=["경조사 이벤트"])
 app.include_router(ledgers_router, prefix="/api/v1/ledgers", tags=["장부 관리"])
 app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["일정 관리"])
+app.include_router(user_settings_router, prefix="/api/settings", tags=["설정 관리"])
