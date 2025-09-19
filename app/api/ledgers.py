@@ -43,29 +43,108 @@ def create_ledger(
     return db_ledger
 
 
-@router.get(
-    "/",
-    response_model=list[LedgerResponse],
-    summary="장부 목록 조회",
-    description="사용자의 모든 장부 기록을 조회합니다.",
-)
+@router.get("/", summary="장부 목록 조회 (필터링 및 검색 지원)")
 def get_ledgers(
-    skip: int = Query(0, ge=0, description="건너뛸 항목 수"),
-    limit: int = Query(100, ge=1, le=1000, description="가져올 항목 수"),
-    current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-):
-    """장부 목록 조회"""
-    ledgers = (
-        db.query(Ledger)
-        .filter(Ledger.user_id == current_user_id)
-        .order_by(Ledger.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+        # 기본 파라미터
+        skip: int = Query(0, ge=0, description="건너뛸 항목 수"),
+        limit: int = Query(20, ge=1, le=100, description="가져올 항목 수"),
 
-    return ledgers
+        # 필터링 파라미터 (프론트엔드 필터와 매칭)
+        entry_type: Optional[str] = Query(None, description="기록 타입: given(나눔), received(받음)"),
+        sort_by: str = Query("latest", description="정렬: latest(최신순), oldest(오래된순), highest(높은금액순), lowest(낮은금액순)"),
+
+        # 검색 파라미터
+        search: Optional[str] = Query(None, description="이름/행사명/장소/메모 검색"),
+
+        # 추가 필터
+        event_type: Optional[str] = Query(None, description="경조사 타입"),
+        relationship_type: Optional[str] = Query(None, description="관계 타입"),
+        start_date: Optional[str] = Query(None, description="시작 날짜 (YYYY-MM-DD)"),
+        end_date: Optional[str] = Query(None, description="종료 날짜 (YYYY-MM-DD)"),
+
+        current_user_id: int = Depends(get_current_user_id),
+        db: Session = Depends(get_db),
+):
+    """장부 목록 조회 - 통합 필터링 및 검색"""
+
+    # 기본 쿼리
+    query = db.query(Ledger).filter(Ledger.user_id == current_user_id)
+
+    # 💰 기록 타입 필터링
+    if entry_type == "given":
+        query = query.filter(Ledger.entry_type == EntryType.GIVEN)
+    elif entry_type == "received":
+        query = query.filter(Ledger.entry_type == EntryType.RECEIVED)
+
+    # 🔍 통합 검색
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            or_(
+                Ledger.counterparty_name.ilike(search_pattern),
+                Ledger.event_name.ilike(search_pattern),
+                Ledger.location.ilike(search_pattern),
+                Ledger.memo.ilike(search_pattern),
+            )
+        )
+
+    # 🎭 경조사 타입 필터
+    if event_type:
+        query = query.filter(Ledger.event_type == event_type)
+
+    # 👥 관계 타입 필터
+    if relationship_type:
+        query = query.filter(Ledger.relationship_type == relationship_type)
+
+    # 📅 날짜 범위 필터
+    if start_date:
+        try:
+            start = datetime.strptime(start_date, "%Y-%m-%d").date()
+            query = query.filter(Ledger.event_date >= start)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="잘못된 시작 날짜 형식")
+
+    if end_date:
+        try:
+            end = datetime.strptime(end_date, "%Y-%m-%d").date()
+            query = query.filter(Ledger.event_date <= end)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="잘못된 종료 날짜 형식")
+
+    # 📊 정렬 (금액순 정렬 추가!)
+    if sort_by == "latest":
+        query = query.order_by(Ledger.created_at.desc())
+    elif sort_by == "oldest":
+        query = query.order_by(Ledger.created_at.asc())
+    elif sort_by == "highest":
+        query = query.order_by(Ledger.amount.desc())  # 높은 금액순
+    elif sort_by == "lowest":
+        query = query.order_by(Ledger.amount.asc())  # 낮은 금액순
+    else:
+        query = query.order_by(Ledger.created_at.desc())  # 기본값
+
+    # 총 개수 및 페이징
+    total_count = query.count()
+    ledgers = query.offset(skip).limit(limit).all()
+
+    return {
+        "success": True,
+        "data": [LedgerResponse.from_orm(ledger).dict() for ledger in ledgers],
+        "meta": {
+            "total": total_count,
+            "skip": skip,
+            "limit": limit,
+            "has_next": (skip + limit) < total_count,
+            "filters_applied": {
+                "entry_type": entry_type,
+                "sort_by": sort_by,
+                "search": search,
+                "event_type": event_type,
+                "relationship_type": relationship_type,
+                "date_range": f"{start_date} ~ {end_date}" if start_date or end_date else None
+            }
+        }
+    }
 
 
 @router.get(
@@ -199,58 +278,6 @@ def get_expense_ledgers(
         .limit(limit)
         .all()
     )
-
-    return ledgers
-
-
-@router.post(
-    "/search",
-    response_model=list[LedgerResponse],
-    summary="장부 검색",
-    description="조건에 맞는 장부 기록을 검색합니다.",
-)
-def search_ledgers(
-    search: LedgerSearch,
-    skip: int = Query(0, ge=0, description="건너뛸 항목 수"),
-    limit: int = Query(100, ge=1, le=1000, description="가져올 항목 수"),
-    current_user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-):
-    """장부 검색"""
-    query = db.query(Ledger).filter(Ledger.user_id == current_user_id)
-
-    # 검색어 필터
-    if search.q:
-        search_pattern = f"%{search.q}%"
-        query = query.filter(
-            or_(
-                Ledger.counterparty_name.ilike(search_pattern),
-                Ledger.event_name.ilike(search_pattern),
-                Ledger.location.ilike(search_pattern),
-                Ledger.memo.ilike(search_pattern),
-            )
-        )
-
-    # 기록 타입 필터
-    if search.entry_type:
-        query = query.filter(Ledger.entry_type == search.entry_type)
-
-    # 경조사 타입 필터
-    if search.event_type:
-        query = query.filter(Ledger.event_type == search.event_type)
-
-    # 날짜 범위 필터
-    if search.start_date:
-        query = query.filter(Ledger.event_date >= search.start_date)
-
-    if search.end_date:
-        query = query.filter(Ledger.event_date <= search.end_date)
-
-    # 관계 타입 필터
-    if search.relationship_type:
-        query = query.filter(Ledger.relationship_type == search.relationship_type)
-
-    ledgers = query.order_by(Ledger.created_at.desc()).offset(skip).limit(limit).all()
 
     return ledgers
 
