@@ -21,11 +21,7 @@ class LedgerBase(BaseModelWithDatetime):
     event_type: Optional[EventType] = Field(
         None, description="경조사 타입 (결혼식, 장례식, 돌잔치 등)"
     )
-    event_name: Optional[str] = Field(
-        None, max_length=200, description="경조사 이름 (예: 김철수 결혼식)"
-    )
     event_date: Optional[date] = Field(None, description="경조사 날짜")
-    location: Optional[str] = Field(None, max_length=500, description="경조사 장소")
     counterparty_name: Optional[str] = Field(
         None, max_length=100, description="상대방 이름"
     )
@@ -54,7 +50,6 @@ class LedgerUpdate(BaseModelWithDatetime):
     event_type: Optional[EventType] = Field(None, description="경조사 타입")
     event_name: Optional[str] = Field(None, max_length=200, description="경조사 이름")
     event_date: Optional[date] = Field(None, description="경조사 날짜")
-    location: Optional[str] = Field(None, max_length=500, description="경조사 장소")
     counterparty_name: Optional[str] = Field(
         None, max_length=100, description="상대방 이름"
     )
@@ -149,9 +144,7 @@ ledger_examples = {
             "amount": 100000,
             "entry_type": EntryType.GIVEN,
             "event_type": EventType.WEDDING,
-            "event_name": "김철수 결혼식",
             "event_date": "2024-06-15",
-            "location": "그랜드 호텔 3층 그랜드볼룸",
             "counterparty_name": "김철수",
             "counterparty_phone": "010-1234-5678",
             "relationship_type": "대학동기",

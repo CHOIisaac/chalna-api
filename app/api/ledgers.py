@@ -59,7 +59,7 @@ def get_ledgers(
         sort_by: str = Query("latest", description="정렬: latest(최신순), oldest(오래된순), highest(높은금액순), lowest(낮은금액순)"),
 
         # 검색 파라미터
-        search: Optional[str] = Query(None, description="이름/행사명/장소/메모 검색"),
+        search: Optional[str] = Query(None, description="이름/메모 검색"),
 
         # 추가 필터
         event_type: Optional[str] = Query(None, description="경조사 타입"),
@@ -87,8 +87,6 @@ def get_ledgers(
         query = query.filter(
             or_(
                 Ledger.counterparty_name.ilike(search_pattern),
-                Ledger.event_name.ilike(search_pattern),
-                Ledger.location.ilike(search_pattern),
                 Ledger.memo.ilike(search_pattern),
             )
         )

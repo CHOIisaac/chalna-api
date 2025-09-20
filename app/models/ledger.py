@@ -26,9 +26,7 @@ class Ledger(Base):
 
     # 경조사 정보
     event_type = Column(String(50), comment="경조사 타입 (결혼식, 장례식, 돌잔치 등)")
-    event_name = Column(String(200), comment="경조사 이름 (예: 김철수 결혼식)")
     event_date = Column(Date, comment="경조사 날짜")
-    location = Column(String(500), comment="경조사 장소")
     counterparty_name = Column(String(100), comment="상대방 이름")
     counterparty_phone = Column(String(20), comment="상대방 전화번호")
     relationship_type = Column(String(50), comment="관계 타입")
@@ -49,9 +47,7 @@ class Ledger(Base):
             "amount": self.amount,
             "entry_type": self.entry_type,
             "event_type": self.event_type,
-            "event_name": self.event_name,
             "event_date": self.event_date.isoformat() if self.event_date else None,
-            "location": self.location,
             "counterparty_name": self.counterparty_name,
             "counterparty_phone": self.counterparty_phone,
             "relationship_type": self.relationship_type,
