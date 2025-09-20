@@ -57,8 +57,20 @@ class Schedule(Base):
 
     @property
     def start_time(self):
-        """날짜와 시간을 합쳐서 datetime 반환"""
+        """날짜와 시간을 합쳐서 datetime 반환 (한국시간)"""
         return datetime.combine(self.event_date, self.event_time)
+    
+    @property
+    def start_datetime_kst(self):
+        """한국 시간 기준 일정 시작 시간 (timezone-aware)"""
+        from zoneinfo import ZoneInfo
+        naive_datetime = datetime.combine(self.event_date, self.event_time)
+        return naive_datetime.replace(tzinfo=ZoneInfo('Asia/Seoul'))
+    
+    @property  
+    def start_datetime_utc(self):
+        """UTC 기준 일정 시작 시간"""
+        return self.start_datetime_kst.astimezone(ZoneInfo('UTC'))
 
     @property
     def is_upcoming(self):
