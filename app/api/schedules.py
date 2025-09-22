@@ -166,7 +166,9 @@ def get_schedules(
         db: Session = Depends(get_db),
 ):
     """일정 목록 조회 - 필터링 완전 지원"""
-
+    print(status)
+    print(event_type)
+    print(sort_by)
     # 기본 쿼리 (user 관계 로딩 불필요 - 성능 최적화)
     query = (
         db.query(Schedule)
@@ -194,10 +196,10 @@ def get_schedules(
         )
 
     # 📊 정렬
-    if sort_by == "latest":
-        query = query.order_by(Schedule.event_date.desc(), Schedule.event_time.desc())
-    else:  # oldest
+    if sort_by == "latest" or sort_by == "date_asc":
         query = query.order_by(Schedule.event_date.asc(), Schedule.event_time.asc())
+    else:  # oldest
+        query = query.order_by(Schedule.event_date.desc(), Schedule.event_time.desc())
 
     # 총 개수 및 페이징
     total_count = query.count()

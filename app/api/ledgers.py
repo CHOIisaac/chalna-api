@@ -71,7 +71,12 @@ def get_ledgers(
         db: Session = Depends(get_db),
 ):
     """장부 목록 조회 - 통합 필터링 및 검색"""
-
+    print(event_type)
+    print(entry_type)
+    print(sort_by)
+    print(relationship_type)
+    print(start_date)
+    print(end_date)
     # 기본 쿼리
     query = db.query(Ledger).filter(Ledger.user_id == current_user_id)
 
@@ -117,11 +122,11 @@ def get_ledgers(
     # 📊 정렬 (금액순 정렬 추가!)
     if sort_by == "latest":
         query = query.order_by(Ledger.created_at.desc())
-    elif sort_by == "oldest":
+    elif sort_by == "date_asc":
         query = query.order_by(Ledger.created_at.asc())
-    elif sort_by == "highest":
+    elif sort_by == "amount_desc":
         query = query.order_by(Ledger.amount.desc())  # 높은 금액순
-    elif sort_by == "lowest":
+    elif sort_by == "amount_asc":
         query = query.order_by(Ledger.amount.asc())  # 낮은 금액순
     else:
         query = query.order_by(Ledger.created_at.desc())  # 기본값
