@@ -9,6 +9,7 @@ from fastapi.openapi.utils import get_openapi
 from app.api import (
     auth_router,
     events_router,
+    home_router,
     ledgers_router,
     schedules_router,
     users_router,
@@ -45,6 +46,7 @@ app = FastAPI(
     openapi_tags=[
         {"name": "인증", "description": "사용자 로그인, 회원가입, 토큰 관리"},
         {"name": "사용자 관리", "description": "사용자 정보 관리 및 설정"},
+        {"name": "홈 화면", "description": "홈 화면 통계 및 현황 조회"},
         {"name": "경조사 이벤트", "description": "경조사 이벤트 관리"},
         {"name": "장부 관리", "description": "경조사비 수입지출 장부 관리"},
         {"name": "일정 관리", "description": "경조사 일정 관리"},
@@ -110,6 +112,7 @@ def custom_openapi():
         "/api/v1/users/me/password",
         "/api/v1/users/me/notification-settings",
         "/api/v1/users/me/stats",
+        "/api/v1/home/",
         "/api/v1/events/",
         "/api/v1/ledgers/",
         "/api/v1/schedules/"
@@ -130,6 +133,7 @@ app.openapi = custom_openapi
 # API 라우터 등록 (사용자가 원했던 /api/v1/ prefix 사용)
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["인증"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["사용자 관리"])
+app.include_router(home_router, prefix="/api/v1/home", tags=["홈 화면"])
 app.include_router(events_router, prefix="/api/v1/events", tags=["경조사 이벤트"])
 app.include_router(ledgers_router, prefix="/api/v1/ledgers", tags=["장부 관리"])
 app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["일정 관리"])
