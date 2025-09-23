@@ -240,7 +240,7 @@ async def get_quick_stats(
         raise HTTPException(status_code=500, detail=f"퀵 스탯 조회 중 오류가 발생했습니다: {str(e)}")
 
 
-@router.get("/recent-completed-schedules", summary="다가오는 최근 일정 조회", description="다가오는 최근 일정 3개 조회")
+@router.get("/recent-schedules", summary="다가오는 최근 일정 조회", description="다가오는 최근 일정 3개 조회")
 async def get_upcoming_schedules(
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
