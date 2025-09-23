@@ -258,50 +258,47 @@ async def get_quick_stats(
         raise HTTPException(status_code=500, detail=f"퀵 스탯 조회 중 오류가 발생했습니다: {str(e)}")
 
 
-@router.get("/recent-schedules", summary="다가오는 최근 일정 조회", description="다가오는 최근 일정 3개 조회")
-async def get_upcoming_schedules(
+@router.get("/recent-ledgers", summary="최근 장부 조회", description="최근 장부 3개 조회")
+async def get_recent_ledgers(
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
-    다가오는 최근 일정 3개 조회
+    최근 장부 3개 조회
     
-    - **id**: 일정 ID
-    - **title**: 일정 제목
-    - **event_type**: 이벤트 타입 (결혼식, 장례식, 돌잔치 등)
-    - **event_date**: 이벤트 날짜
-    - **event_time**: 이벤트 시간
-    - **location**: 장소
+    - **id**: 장부 ID
+    - **name**: 상대방 이름
+    - **relationship**: 관계
+    - **amount**: 금액
+    - **event_type**: 경조사 타입
+    - **date**: 날짜
+    - **type**: given/received
     - **memo**: 메모
     """
     try:
-        # 다가오는 최근 일정 3개 조회 (Schedule 모델에서 직접 조회)
-        now = datetime.now()
-        upcoming_schedules = db.query(Schedule).filter(
-            and_(
-                Schedule.user_id == user_id,
-                Schedule.event_date >= now.date(),  # 오늘 이후의 일정
-                Schedule.status == "upcoming"  # 예정된 일정
-            )
-        ).order_by(Schedule.event_date.asc()).limit(3).all()
+        # 최근 장부 3개 조회 (Ledger 모델에서 직접 조회)
+        recent_ledgers = db.query(Ledger).filter(
+            Ledger.user_id == user_id
+        ).order_by(Ledger.created_at.desc()).limit(3).all()
         
-        schedules_data = []
-        for schedule in upcoming_schedules:
-            schedules_data.append({
-                "id": schedule.id,
-                "title": schedule.title,
-                "event_type": schedule.event_type,
-                "event_date": schedule.event_date.isoformat() if schedule.event_date else None,
-                "event_time": schedule.event_time.isoformat() if schedule.event_time else None,
-                "location": schedule.location,
-                "memo": schedule.memo
+        ledgers_data = []
+        for ledger in recent_ledgers:
+            ledgers_data.append({
+                "id": ledger.id,
+                "name": ledger.counterparty_name,
+                "relationship_type": ledger.relationship_type,
+                "amount": ledger.amount,
+                "event_type": ledger.event_type,
+                "event_date": ledger.event_date.isoformat() if ledger.event_date else None,
+                "entry_type": ledger.entry_type,
+                "memo": ledger.memo
             })
         
         return {
             "success": True,
-            "data": schedules_data,
-            "message": "다가오는 최근 일정 조회 성공"
+            "data": ledgers_data,
+            "message": "최근 장부 조회 성공"
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"다가오는 최근 일정 조회 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"최근 장부 조회 중 오류가 발생했습니다: {str(e)}")
