@@ -40,16 +40,20 @@ async def get_monthly_stats(
         week_start = now - timedelta(days=now.weekday())
         week_end = week_start + timedelta(days=6)
         
-        # 최적화: 단일 쿼리로 이번 달/전월 총액 조회
+        # 최적화: 단일 쿼리로 이번 달/전월 총액 조회 (나눈 것만)
         amount_stats = db.query(
             func.sum(case(
-                (Ledger.created_at >= this_month_start, Ledger.amount),
+                (and_(
+                    Ledger.created_at >= this_month_start,
+                    Ledger.entry_type == "given"
+                ), Ledger.amount),
                 else_=0
             )).label('this_month'),
             func.sum(case(
                 (and_(
                     Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end
+                    Ledger.created_at <= last_month_end,
+                    Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
             )).label('last_month')
@@ -83,6 +87,14 @@ async def get_monthly_stats(
             )).label('this_month_completed'),
             func.count(case(
                 (and_(
+                    Schedule.event_date >= this_month_start.date(),
+                    Schedule.event_date <= this_month_end.date(),
+                    Schedule.status == "upcoming"
+                ), Schedule.id),
+                else_=None
+            )).label('this_month_upcoming'),
+            func.count(case(
+                (and_(
                     Schedule.event_date >= week_start.date(),
                     Schedule.event_date <= week_end.date()
                 ), Schedule.id),
@@ -90,7 +102,7 @@ async def get_monthly_stats(
             )).label('this_week_total')
         ).filter(Schedule.user_id == user_id).first()
         
-        event_count = schedule_stats.this_month_total or 0
+        event_count = schedule_stats.this_month_upcoming or 0  # 예정인 일정만 카운트
         this_week_event_count = schedule_stats.this_week_total or 0
         total_this_month_schedules = schedule_stats.this_month_total or 0
         completed_this_month_schedules = schedule_stats.this_month_completed or 0
@@ -137,12 +149,13 @@ async def get_quick_stats(
         last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
         last_month_end = this_month_start - timedelta(seconds=1)
         
-        # 최적화: 단일 쿼리로 축의금/조의금 통계 조회
+        # 최적화: 단일 쿼리로 축의금/조의금 통계 조회 (나눈 것만)
         wedding_funeral_stats = db.query(
             func.sum(case(
                 (and_(
                     Ledger.event_type == "결혼식",
-                    Ledger.created_at >= this_month_start
+                    Ledger.created_at >= this_month_start,
+                    Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
             )).label('this_month_wedding'),
@@ -150,14 +163,16 @@ async def get_quick_stats(
                 (and_(
                     Ledger.event_type == "결혼식",
                     Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end
+                    Ledger.created_at <= last_month_end,
+                    Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
             )).label('last_month_wedding'),
             func.sum(case(
                 (and_(
                     Ledger.event_type == "장례식",
-                    Ledger.created_at >= this_month_start
+                    Ledger.created_at >= this_month_start,
+                    Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
             )).label('this_month_funeral'),
@@ -165,14 +180,16 @@ async def get_quick_stats(
                 (and_(
                     Ledger.event_type == "장례식",
                     Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end
+                    Ledger.created_at <= last_month_end,
+                    Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
             )).label('last_month_funeral'),
             func.count(case(
                 (and_(
                     Ledger.event_type == "결혼식",
-                    Ledger.created_at >= this_month_start
+                    Ledger.created_at >= this_month_start,
+                    Ledger.entry_type == "given"
                 ), Ledger.id),
                 else_=None
             )).label('this_month_wedding_count'),
@@ -180,7 +197,8 @@ async def get_quick_stats(
                 (and_(
                     Ledger.event_type == "결혼식",
                     Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end
+                    Ledger.created_at <= last_month_end,
+                    Ledger.entry_type == "given"
                 ), Ledger.id),
                 else_=None
             )).label('last_month_wedding_count')
@@ -193,7 +211,7 @@ async def get_quick_stats(
         this_month_wedding_count = wedding_funeral_stats.this_month_wedding_count or 0
         last_month_wedding_count = wedding_funeral_stats.last_month_wedding_count or 0
         
-        # 최적화: 단일 쿼리로 Schedule 이벤트 통계 조회
+        # 최적화: 단일 쿼리로 Schedule 이벤트 통계 조회 (모든 일정)
         event_stats = db.query(
             func.count(case(
                 (Schedule.event_date >= this_month_start.date(), Schedule.id),
