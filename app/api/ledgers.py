@@ -64,8 +64,6 @@ def get_ledgers(
         # 추가 필터
         event_type: Optional[str] = Query(None, description="경조사 타입"),
         relationship_type: Optional[str] = Query(None, description="관계 타입"),
-        start_date: Optional[str] = Query(None, description="시작 날짜 (YYYY-MM-DD)"),
-        end_date: Optional[str] = Query(None, description="종료 날짜 (YYYY-MM-DD)"),
 
         current_user_id: int = Depends(get_current_user_id),
         db: Session = Depends(get_db),
@@ -75,8 +73,6 @@ def get_ledgers(
     print(entry_type)
     print(sort_by)
     print(relationship_type)
-    print(start_date)
-    print(end_date)
     # 기본 쿼리
     query = db.query(Ledger).filter(Ledger.user_id == current_user_id)
 
@@ -104,32 +100,18 @@ def get_ledgers(
     if relationship_type:
         query = query.filter(Ledger.relationship_type == relationship_type)
 
-    # 📅 날짜 범위 필터
-    if start_date:
-        try:
-            start = datetime.strptime(start_date, "%Y-%m-%d").date()
-            query = query.filter(Ledger.event_date >= start)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="잘못된 시작 날짜 형식")
-
-    if end_date:
-        try:
-            end = datetime.strptime(end_date, "%Y-%m-%d").date()
-            query = query.filter(Ledger.event_date <= end)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="잘못된 종료 날짜 형식")
 
     # 📊 정렬 (금액순 정렬 추가!)
     if sort_by == "latest":
-        query = query.order_by(Ledger.created_at.desc())
+        query = query.order_by(Ledger.event_date.desc())
     elif sort_by == "date_asc":
-        query = query.order_by(Ledger.created_at.asc())
+        query = query.order_by(Ledger.event_date.asc())
     elif sort_by == "amount_desc":
         query = query.order_by(Ledger.amount.desc())  # 높은 금액순
     elif sort_by == "amount_asc":
         query = query.order_by(Ledger.amount.asc())  # 낮은 금액순
     else:
-        query = query.order_by(Ledger.created_at.desc())  # 기본값
+        query = query.order_by(Ledger.event_date.desc())  # 기본값
 
     # 총 개수 및 페이징
     total_count = query.count()
@@ -149,7 +131,6 @@ def get_ledgers(
                 "search": search,
                 "event_type": event_type,
                 "relationship_type": relationship_type,
-                "date_range": f"{start_date} ~ {end_date}" if start_date or end_date else None
             }
         }
     }
