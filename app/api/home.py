@@ -153,7 +153,7 @@ async def get_quick_stats(
         wedding_funeral_stats = db.query(
             func.sum(case(
                 (and_(
-                    Ledger.event_type == "결혼식",
+                    Ledger.event_type != "장례식",
                     Ledger.created_at >= this_month_start,
                     Ledger.entry_type == "given"
                 ), Ledger.amount),
@@ -161,7 +161,7 @@ async def get_quick_stats(
             )).label('this_month_wedding'),
             func.sum(case(
                 (and_(
-                    Ledger.event_type == "결혼식",
+                    Ledger.event_type != "장례식",
                     Ledger.created_at >= last_month_start,
                     Ledger.created_at <= last_month_end,
                     Ledger.entry_type == "given"
@@ -187,7 +187,7 @@ async def get_quick_stats(
             )).label('last_month_funeral'),
             func.count(case(
                 (and_(
-                    Ledger.event_type == "결혼식",
+                    Ledger.event_type != "장례식",
                     Ledger.created_at >= this_month_start,
                     Ledger.entry_type == "given"
                 ), Ledger.id),
@@ -195,7 +195,7 @@ async def get_quick_stats(
             )).label('this_month_wedding_count'),
             func.count(case(
                 (and_(
-                    Ledger.event_type == "결혼식",
+                    Ledger.event_type != "장례식",
                     Ledger.created_at >= last_month_start,
                     Ledger.created_at <= last_month_end,
                     Ledger.entry_type == "given"
