@@ -12,6 +12,7 @@ from app.api import (
     home_router,
     ledgers_router,
     schedules_router,
+    stats_router,
     users_router,
     user_settings_router,
 )
@@ -50,6 +51,7 @@ app = FastAPI(
         {"name": "경조사 이벤트", "description": "경조사 이벤트 관리"},
         {"name": "장부 관리", "description": "경조사비 수입지출 장부 관리"},
         {"name": "일정 관리", "description": "경조사 일정 관리"},
+        {"name": "통계", "description": "경조사비 통계 및 분석"},
     ],
 )
 
@@ -115,7 +117,8 @@ def custom_openapi():
         "/api/v1/home/",
         "/api/v1/events/",
         "/api/v1/ledgers/",
-        "/api/v1/schedules/"
+        "/api/v1/schedules/",
+        "/api/v1/stats/"
     ]
     
     for path in openapi_schema["paths"]:
@@ -137,4 +140,5 @@ app.include_router(home_router, prefix="/api/v1/home", tags=["홈 화면"])
 app.include_router(events_router, prefix="/api/v1/events", tags=["경조사 이벤트"])
 app.include_router(ledgers_router, prefix="/api/v1/ledgers", tags=["장부 관리"])
 app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["일정 관리"])
+app.include_router(stats_router, prefix="/api/v1/stats", tags=["통계"])
 app.include_router(user_settings_router, prefix="/api/settings", tags=["설정 관리"])
