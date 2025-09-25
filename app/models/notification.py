@@ -34,7 +34,7 @@ class Notification(Base):
             "title": self.title,
             "message": self.message,
             "time": self.created_at.strftime("%H:%M") if self.created_at else "",
-            "type": self.event_type,
+            "event_type": self.event_type,
             "read": self.read,
             "date": self.event_date.isoformat() if self.event_date else "",
             "location": self.location or "",

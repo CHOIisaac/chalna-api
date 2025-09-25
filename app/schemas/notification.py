@@ -11,7 +11,7 @@ class NotificationBase(BaseModel):
     """알림 기본 스키마"""
     title: str = Field(..., description="알림 제목", max_length=255)
     message: str = Field(..., description="알림 메시지")
-    type: str = Field(..., description="알림 타입", max_length=50)
+    event_type: str = Field(..., description="알림 타입", max_length=50)
     event_date: Optional[date] = Field(None, description="알림과 관련된 날짜")
     event_time: Optional[time] = Field(None, description="알림과 관련된 시간")
     location: Optional[str] = Field(None, description="장소 정보", max_length=255)

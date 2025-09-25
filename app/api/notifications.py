@@ -22,7 +22,7 @@ async def get_notifications(
     page: int = Query(1, ge=1, description="페이지 번호"),
     limit: int = Query(20, ge=1, le=100, description="페이지당 항목 수"),
     read: Optional[bool] = Query(None, description="읽음 상태 필터 (true: 읽음, false: 안읽음, null: 전체)"),
-    type: Optional[str] = Query(None, description="알림 타입 필터")
+    event_type: Optional[str] = Query(None, description="알림 타입 필터")
 ) -> NotificationListResponse:
     """
     알림 목록 조회
@@ -41,8 +41,8 @@ async def get_notifications(
             query = query.filter(Notification.read == read)
         
         # 타입 필터
-        if type:
-            query = query.filter(Notification.type == type)
+        if event_type:
+            query = query.filter(Notification.type == event_type)
         
         # 전체 개수 조회
         total_count = query.count()
@@ -59,7 +59,7 @@ async def get_notifications(
                 title=notification.title,
                 message=notification.message,
                 time=notification.created_at.strftime("%H:%M") if notification.created_at else "",
-                type=notification.event_type,
+                event_type=notification.event_type,
                 read=notification.read,
                 date=notification.event_date.isoformat() if notification.event_date else "",
                 location=notification.location or "",
