@@ -32,6 +32,9 @@ class User(Base):
     # 사용자 상태
     is_active = Column(Boolean, default=True, comment="활성 상태")
     is_verified = Column(Boolean, default=False, comment="이메일 인증 상태")
+    
+    # 알림 관련
+    fcm_token = Column(String(255), comment="Firebase FCM 토큰")
 
 
     # 메타데이터
@@ -47,6 +50,7 @@ class User(Base):
         "Schedule", back_populates="user", cascade="all, delete-orphan"
     )
     settings = relationship("UserSettings", back_populates="user", cascade="all, delete-orphan", uselist=False)  # 추가
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password: str):
         """비밀번호 해싱"""
@@ -66,6 +70,7 @@ class User(Base):
             "phone": self.phone,
             "is_active": self.is_active,
             "is_verified": self.is_verified,
+            "fcm_token": self.fcm_token,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

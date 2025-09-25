@@ -7,5 +7,6 @@ from app.models.user_settings import UserSettings  # ✅ 그 다음 UserSettings
 from app.models.event import Event
 from app.models.ledger import Ledger
 from app.models.schedule import Schedule
+from app.models.notification import Notification
 
-__all__ = ["User", "UserSettings", "Event", "Ledger", "Schedule"]
+__all__ = ["User", "UserSettings", "Event", "Ledger", "Schedule", "Notification"]

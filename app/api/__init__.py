@@ -6,6 +6,7 @@ from app.api.auth import router as auth_router
 from app.api.events import router as events_router
 from app.api.home import router as home_router
 from app.api.ledgers import router as ledgers_router
+from app.api.notifications import router as notifications_router
 from app.api.schedules import router as schedules_router
 from app.api.stats import router as stats_router
 from app.api.users import router as users_router
@@ -18,6 +19,7 @@ __all__ = [
     "events_router",
     "home_router",
     "ledgers_router",
+    "notifications_router",
     "schedules_router",
     "stats_router",
 ]
