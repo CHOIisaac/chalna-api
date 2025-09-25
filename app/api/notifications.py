@@ -19,8 +19,6 @@ router = APIRouter()
 async def get_notifications(
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db),
-    page: int = Query(1, ge=1, description="페이지 번호"),
-    limit: int = Query(20, ge=1, le=100, description="페이지당 항목 수"),
     read: Optional[bool] = Query(None, description="읽음 상태 필터 (true: 읽음, false: 안읽음, null: 전체)"),
     event_type: Optional[str] = Query(None, description="알림 타입 필터")
 ) -> NotificationListResponse:
@@ -46,11 +44,10 @@ async def get_notifications(
         
         # 전체 개수 조회
         total_count = query.count()
-        
+
         # 페이지네이션 적용
-        offset = (page - 1) * limit
-        notifications = query.order_by(desc(Notification.created_at)).offset(offset).limit(limit).all()
-        
+        notifications = query.order_by(desc(Notification.created_at)).all()
+
         # 응답 데이터 구성
         notification_list = []
         for notification in notifications:
