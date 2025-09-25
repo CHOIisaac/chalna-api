@@ -454,3 +454,49 @@ async def get_personal_details(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"개인별 상세 조회 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.get("/events", summary="이벤트별 기록 조회", description="이벤트 타입별 통계 조회")
+async def get_events_stats(
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    이벤트별 기록 조회
+    
+    - **type**: 이벤트 타입 (결혼식, 출산, 장례식, 돌잔치, 생일, 기타)
+    - **count**: 건수
+    - **avgAmount**: 평균 금액
+    """
+    try:
+        # 이벤트별 통계 조회
+        event_stats = db.query(
+            Ledger.event_type,
+            func.count(Ledger.id).label('count'),
+            func.avg(Ledger.amount).label('avg_amount')
+        ).filter(
+            Ledger.user_id == user_id
+        ).group_by(
+            Ledger.event_type
+        ).order_by(
+            func.count(Ledger.id).desc()
+        ).all()
+        
+        # 결과 데이터 구성
+        result = []
+        for stat in event_stats:
+            event_type = stat.event_type or "기타"
+            result.append({
+                "type": event_type,
+                "count": int(stat.count),
+                "avgAmount": int(stat.avg_amount or 0)
+            })
+        
+        return {
+            "success": True,
+            "data": result,
+            "message": "이벤트별 통계 조회 성공"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"이벤트별 통계 조회 중 오류가 발생했습니다: {str(e)}")
