@@ -186,3 +186,150 @@ async def get_total_amounts(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"총액 조회 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.get("/top-items", summary="TOP 5 항목 조회", description="given/received별로 금액이 높은 상위 항목 조회")
+async def get_top_items(
+    limit: int = Query(5, description="조회할 항목 수 (기본값: 5)"),
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    TOP 5 항목 조회
+    
+    - **limit**: 조회할 항목 수
+    - **given**: 나눔 TOP 항목들
+    - **received**: 받음 TOP 항목들
+    - **name**: 상대방 이름 + 이벤트 타입
+    - **amount**: 금액
+    - **type**: 축의금/조의금 구분
+    """
+    try:
+        # limit 검증
+        if limit < 1 or limit > 50:
+            raise HTTPException(status_code=400, detail="limit은 1~50 사이여야 합니다")
+        
+        result = {
+            "given": [],
+            "received": []
+        }
+        
+        # given/received별로 TOP 항목 조회
+        for entry_type in ["given", "received"]:
+            top_items = db.query(
+                Ledger.counterparty_name,
+                Ledger.event_type,
+                Ledger.amount
+            ).filter(
+                and_(
+                    Ledger.user_id == user_id,
+                    Ledger.entry_type == entry_type
+                )
+            ).order_by(
+                Ledger.amount.desc()
+            ).limit(limit).all()
+            
+            # 결과 데이터 구성
+            for item in top_items:
+                # 축의금/조의금 구분
+                item_type = "조의금" if item.event_type == "장례식" else "축의금"
+                
+                result[entry_type].append({
+                    "name": f"{item.counterparty_name} {item.event_type}",
+                    "amount": int(item.amount),
+                    "type": item_type
+                })
+        
+        return {
+            "success": True,
+            "data": result,
+            "message": f"TOP {limit} 항목 조회 성공"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TOP 항목 조회 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.get("/amount-distribution", summary="금액대별 분포 조회", description="given/received별로 금액대별 분포 조회")
+async def get_amount_distribution(
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    금액대별 분포 조회
+    
+    - **given**: 나눔 금액대별 분포
+    - **received**: 받음 금액대별 분포
+    - **range**: 금액대 구간
+    - **count**: 해당 구간의 건수
+    - **percentage**: 비율 (%)
+    """
+    try:
+        result = {
+            "given": [],
+            "received": []
+        }
+        
+        # given/received별로 금액대별 분포 조회
+        for entry_type in ["given", "received"]:
+            # 전체 건수 조회
+            total_count = db.query(func.count(Ledger.id)).filter(
+                and_(
+                    Ledger.user_id == user_id,
+                    Ledger.entry_type == entry_type
+                )
+            ).scalar()
+            
+            if total_count == 0:
+                result[entry_type] = []
+                continue
+            
+            # 금액대별 분포 조회
+            distribution = db.query(
+                func.sum(case(
+                    (Ledger.amount < 50000, 1),
+                    else_=0
+                )).label('under_50k'),
+                func.sum(case(
+                    (and_(Ledger.amount >= 50000, Ledger.amount < 100000), 1),
+                    else_=0
+                )).label('range_50k_to_100k'),
+                func.sum(case(
+                    (and_(Ledger.amount >= 100000, Ledger.amount < 200000), 1),
+                    else_=0
+                )).label('range_100k_to_200k'),
+                func.sum(case(
+                    (Ledger.amount >= 200000, 1),
+                    else_=0
+                )).label('over_200k')
+            ).filter(
+                and_(
+                    Ledger.user_id == user_id,
+                    Ledger.entry_type == entry_type
+                )
+            ).first()
+            
+            # 결과 데이터 구성
+            ranges = [
+                {"range": "5만원 미만", "count": int(distribution.under_50k or 0)},
+                {"range": "5-10만원", "count": int(distribution.range_50k_to_100k or 0)},
+                {"range": "10-20만원", "count": int(distribution.range_100k_to_200k or 0)},
+                {"range": "20만원 이상", "count": int(distribution.over_200k or 0)}
+            ]
+            
+            for range_data in ranges:
+                percentage = round((range_data["count"] / total_count) * 100, 1) if total_count > 0 else 0
+                result[entry_type].append({
+                    "range": range_data["range"],
+                    "count": range_data["count"],
+                    "percentage": percentage
+                })
+        
+        return {
+            "success": True,
+            "data": result,
+            "message": "금액대별 분포 조회 성공"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"금액대별 분포 조회 중 오류가 발생했습니다: {str(e)}")
