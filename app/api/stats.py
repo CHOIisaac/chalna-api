@@ -333,3 +333,124 @@ async def get_amount_distribution(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"금액대별 분포 조회 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.get("/relationship-breakdown", summary="관계별 분석 조회", description="given/received별로 관계별 통계 조회")
+async def get_relationship_breakdown(
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    관계별 분석 조회
+    
+    - **given**: 나눔 관계별 통계
+    - **received**: 받음 관계별 통계
+    - **relationship**: 관계 유형
+    - **count**: 건수
+    - **totalAmount**: 총액
+    - **avgAmount**: 평균 금액
+    """
+    try:
+        result = {
+            "given": [],
+            "received": []
+        }
+        
+        # given/received별로 관계별 통계 조회
+        for entry_type in ["given", "received"]:
+            relationship_stats = db.query(
+                Ledger.relationship_type,
+                func.count(Ledger.id).label('count'),
+                func.sum(Ledger.amount).label('total_amount'),
+                func.avg(Ledger.amount).label('avg_amount')
+            ).filter(
+                and_(
+                    Ledger.user_id == user_id,
+                    Ledger.entry_type == entry_type
+                )
+            ).group_by(
+                Ledger.relationship_type
+            ).order_by(
+                func.sum(Ledger.amount).desc()
+            ).all()
+            
+            # 결과 데이터 구성
+            for stat in relationship_stats:
+                relationship = stat.relationship_type or "기타"
+                result[entry_type].append({
+                    "relationship": relationship,
+                    "count": int(stat.count),
+                    "totalAmount": int(stat.total_amount or 0),
+                    "avgAmount": int(stat.avg_amount or 0)
+                })
+        
+        return {
+            "success": True,
+            "data": result,
+            "message": "관계별 분석 조회 성공"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"관계별 분석 조회 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.get("/personal-details", summary="개인별 상세 조회", description="given/received별로 개인별 통계 조회")
+async def get_personal_details(
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    개인별 상세 조회
+    
+    - **given**: 나눔 개인별 통계
+    - **received**: 받음 개인별 통계
+    - **name**: 상대방 이름
+    - **total**: 총액
+    - **count**: 건수
+    - **avg**: 평균 금액
+    - **relationship**: 관계 유형
+    """
+    try:
+        result = {
+            "given": [],
+            "received": []
+        }
+        
+        # given/received별로 개인별 통계 조회
+        for entry_type in ["given", "received"]:
+            personal_stats = db.query(
+                Ledger.counterparty_name,
+                Ledger.relationship_type,
+                func.count(Ledger.id).label('count'),
+                func.sum(Ledger.amount).label('total'),
+                func.avg(Ledger.amount).label('avg')
+            ).filter(
+                and_(
+                    Ledger.user_id == user_id,
+                    Ledger.entry_type == entry_type
+                )
+            ).group_by(
+                Ledger.counterparty_name,
+                Ledger.relationship_type
+            ).order_by(
+                func.sum(Ledger.amount).desc()
+            ).all()
+            
+            # 결과 데이터 구성
+            for stat in personal_stats:
+                result[entry_type].append({
+                    "name": stat.counterparty_name,
+                    "total": int(stat.total or 0),
+                    "count": int(stat.count),
+                    "avg": int(stat.avg or 0),
+                    "relationship": stat.relationship_type or "기타"
+                })
+        
+        return {
+            "success": True,
+            "data": result,
+            "message": "개인별 상세 조회 성공"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"개인별 상세 조회 중 오류가 발생했습니다: {str(e)}")
