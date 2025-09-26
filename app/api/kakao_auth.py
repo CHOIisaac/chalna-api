@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.kakao_auth_service import KakaoAuthService
 from app.schemas.kakao_auth import (
-    KakaoLoginRequest, 
-    KakaoLoginResponse, 
-    KakaoLoginUrlResponse
+    KakaoLoginRequest,
+    KakaoLoginResponse,
+    KakaoLoginUrlResponse, KakaoUserInfo
 )
 
 router = APIRouter()
@@ -40,7 +40,7 @@ async def get_kakao_login_url() -> KakaoLoginUrlResponse:
 
 @router.post("/login", response_model=KakaoLoginResponse, summary="카카오 로그인 (모바일)", description="카카오 액세스 토큰으로 로그인합니다")
 async def kakao_login_mobile(
-    access_token: str,
+    login_data: KakaoLoginRequest,
     db: Session = Depends(get_db)
 ) -> KakaoLoginResponse:
     """
@@ -49,19 +49,26 @@ async def kakao_login_mobile(
     - **access_token**: 카카오 SDK에서 받은 액세스 토큰
     
     모바일 앱에서 카카오 SDK로 로그인 후 받은 액세스 토큰을 사용합니다.
+    보안을 위해 POST body로 토큰을 전송합니다.
     """
     try:
+        if not login_data.access_token:
+            raise HTTPException(status_code=400, detail="카카오 액세스 토큰이 필요합니다")
+        
         service = KakaoAuthService(db)
         
         # 모바일 로그인: 액세스 토큰 직접 사용
-        result = await service.login_with_kakao_token(access_token)
+        result = await service.login_with_kakao_token(login_data.access_token)
+        
+        # 카카오 정보를 Pydantic 모델로 변환
+        kakao_info = KakaoUserInfo.from_kakao_data(result["kakao_info"])
         
         return KakaoLoginResponse(
             success=True,
             access_token=result["access_token"],
             token_type=result["token_type"],
             user=result["user"],
-            kakao_info=result["kakao_info"],
+            kakao_info=kakao_info,
             message="카카오 로그인 성공"
         )
         

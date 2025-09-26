@@ -93,7 +93,7 @@ export const KakaoLoginButton: React.FC<KakaoLoginButtonProps> = ({ onLoginSucce
       // 1. 카카오 로그인
       const kakaoAccessToken = await KakaoAuthService.loginWithKakao();
       
-      // 2. 백엔드에 액세스 토큰 전송
+      // 2. 백엔드에 액세스 토큰 전송 (POST body로 안전하게 전송)
       const response = await fetch('http://192.168.0.95:8000/api/v1/kakao/login', {
         method: 'POST',
         headers: {
@@ -242,10 +242,16 @@ npx expo start
 3. 백엔드에서 JWT 토큰 발급 확인
 4. 인증된 API 호출 테스트
 
-## 6. 주의사항
+## 6. 보안 주의사항
+
+1. **토큰 전송**: 카카오 액세스 토큰은 POST body로만 전송 (쿼리 파라미터 사용 금지)
+2. **HTTPS 사용**: 프로덕션에서는 반드시 HTTPS 사용
+3. **토큰 저장**: JWT 토큰을 안전하게 저장 (AsyncStorage 사용)
+4. **토큰 만료**: 카카오 액세스 토큰은 일정 시간 후 만료되므로 적절한 갱신 처리
+5. **에러 처리**: 네트워크 오류, 로그인 실패 등에 대한 적절한 처리
+
+## 7. 기타 주의사항
 
 1. **네트워크 설정**: 모바일 앱과 백엔드 서버가 같은 네트워크에 있어야 함
 2. **카카오 앱 키**: app.json에 올바른 카카오 앱 키 설정
 3. **패키지명/번들ID**: 카카오 개발자 콘솔과 일치해야 함
-4. **토큰 저장**: JWT 토큰을 안전하게 저장 (AsyncStorage 사용)
-5. **에러 처리**: 네트워크 오류, 로그인 실패 등에 대한 적절한 처리

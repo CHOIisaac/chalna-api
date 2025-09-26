@@ -8,8 +8,7 @@ from pydantic import BaseModel, Field
 
 class KakaoLoginRequest(BaseModel):
     """카카오 로그인 요청 스키마"""
-    code: Optional[str] = Field(None, description="카카오 인증 코드 (웹용)")
-    access_token: Optional[str] = Field(None, description="카카오 액세스 토큰 (모바일용)")
+    access_token: str = Field(..., description="카카오 액세스 토큰 (모바일용)", min_length=1)
 
 
 class KakaoUserInfo(BaseModel):
@@ -17,6 +16,15 @@ class KakaoUserInfo(BaseModel):
     kakao_id: str = Field(..., description="카카오 사용자 ID")
     nickname: Optional[str] = Field(None, description="카카오 닉네임")
     profile_image: Optional[str] = Field(None, description="프로필 이미지 URL")
+    
+    @classmethod
+    def from_kakao_data(cls, kakao_user_info: dict):
+        """카카오 API 응답 데이터로부터 KakaoUserInfo 생성"""
+        return cls(
+            kakao_id=str(kakao_user_info.get("id", "")),
+            nickname=kakao_user_info.get("kakao_account", {}).get("profile", {}).get("nickname"),
+            profile_image=kakao_user_info.get("kakao_account", {}).get("profile", {}).get("profile_image_url")
+        )
 
 
 class KakaoLoginResponse(BaseModel):

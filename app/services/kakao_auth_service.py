@@ -36,6 +36,13 @@ class KakaoAuthService:
                 )
                 response.raise_for_status()
                 return response.json()
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 401:
+                    raise Exception("유효하지 않은 카카오 액세스 토큰입니다. 다시 로그인해주세요.")
+                elif e.response.status_code == 403:
+                    raise Exception("카카오 API 접근 권한이 없습니다.")
+                else:
+                    raise Exception(f"카카오 API 호출 실패 (상태코드: {e.response.status_code})")
             except httpx.HTTPError as e:
                 raise Exception(f"카카오 API 호출 실패: {e}")
     
@@ -140,11 +147,7 @@ class KakaoAuthService:
                     "is_verified": user.is_verified,
                     "is_active": user.is_active
                 },
-                "kakao_info": {
-                    "kakao_id": kakao_user_info.get("id"),
-                    "nickname": kakao_user_info.get("kakao_account", {}).get("profile", {}).get("nickname"),
-                    "profile_image": kakao_user_info.get("kakao_account", {}).get("profile", {}).get("profile_image_url")
-                }
+                "kakao_info": kakao_user_info  # 원본 카카오 API 응답 전달
             }
             
         except Exception as e:
@@ -173,11 +176,7 @@ class KakaoAuthService:
                     "is_verified": user.is_verified,
                     "is_active": user.is_active
                 },
-                "kakao_info": {
-                    "kakao_id": kakao_user_info.get("id"),
-                    "nickname": kakao_user_info.get("kakao_account", {}).get("profile", {}).get("nickname"),
-                    "profile_image": kakao_user_info.get("kakao_account", {}).get("profile", {}).get("profile_image_url")
-                }
+                "kakao_info": kakao_user_info  # 원본 카카오 API 응답 전달
             }
             
         except Exception as e:
