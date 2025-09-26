@@ -10,6 +10,7 @@ from app.api import (
     auth_router,
     events_router,
     home_router,
+    kakao_auth_router,
     ledgers_router,
     notifications_router,
     schedules_router,
@@ -47,6 +48,7 @@ app = FastAPI(
     },
     openapi_tags=[
         {"name": "인증", "description": "사용자 로그인, 회원가입, 토큰 관리"},
+        {"name": "카카오 로그인", "description": "카카오 소셜 로그인"},
         {"name": "사용자 관리", "description": "사용자 정보 관리 및 설정"},
         {"name": "홈 화면", "description": "홈 화면 통계 및 현황 조회"},
         {"name": "경조사 이벤트", "description": "경조사 이벤트 관리"},
@@ -138,6 +140,7 @@ app.openapi = custom_openapi
 
 # API 라우터 등록 (사용자가 원했던 /api/v1/ prefix 사용)
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["인증"])
+app.include_router(kakao_auth_router, prefix="/api/v1/kakao", tags=["카카오 로그인"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["사용자 관리"])
 app.include_router(home_router, prefix="/api/v1/home", tags=["홈 화면"])
 app.include_router(events_router, prefix="/api/v1/events", tags=["경조사 이벤트"])

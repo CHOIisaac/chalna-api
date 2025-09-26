@@ -98,6 +98,9 @@ class Settings(BaseSettings):
 
     # 🔗 외부 API 설정
     KAKAO_API_KEY: Optional[str] = None
+    KAKAO_CLIENT_ID: Optional[str] = None
+    KAKAO_CLIENT_SECRET: Optional[str] = None
+    KAKAO_REDIRECT_URI: Optional[str] = None
     NAVER_API_KEY: Optional[str] = None
 
     # 🔴 Redis 설정
