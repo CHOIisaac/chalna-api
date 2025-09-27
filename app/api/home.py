@@ -40,19 +40,19 @@ async def get_monthly_stats(
         week_start = now - timedelta(days=now.weekday())
         week_end = week_start + timedelta(days=6)
         
-        # 최적화: 단일 쿼리로 이번 달/전월 총액 조회 (나눈 것만)
+        # 최적화: 단일 쿼리로 이번 달/전월 총액 조회 (나눈 것만) - 이벤트 날짜 기준
         amount_stats = db.query(
             func.sum(case(
                 (and_(
-                    Ledger.created_at >= this_month_start,
+                    Ledger.event_date >= this_month_start.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
             )).label('this_month'),
             func.sum(case(
                 (and_(
-                    Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end,
+                    Ledger.event_date >= last_month_start.date(),
+                    Ledger.event_date <= last_month_end.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
@@ -149,12 +149,12 @@ async def get_quick_stats(
         last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
         last_month_end = this_month_start - timedelta(seconds=1)
         
-        # 최적화: 단일 쿼리로 축의금/조의금 통계 조회 (나눈 것만)
+        # 최적화: 단일 쿼리로 축의금/조의금 통계 조회 (나눈 것만) - 이벤트 날짜 기준
         wedding_funeral_stats = db.query(
             func.sum(case(
                 (and_(
                     Ledger.event_type != "장례식",
-                    Ledger.created_at >= this_month_start,
+                    Ledger.event_date >= this_month_start.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
@@ -162,8 +162,8 @@ async def get_quick_stats(
             func.sum(case(
                 (and_(
                     Ledger.event_type != "장례식",
-                    Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end,
+                    Ledger.event_date >= last_month_start.date(),
+                    Ledger.event_date <= last_month_end.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
@@ -171,7 +171,7 @@ async def get_quick_stats(
             func.sum(case(
                 (and_(
                     Ledger.event_type == "장례식",
-                    Ledger.created_at >= this_month_start,
+                    Ledger.event_date >= this_month_start.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
@@ -179,8 +179,8 @@ async def get_quick_stats(
             func.sum(case(
                 (and_(
                     Ledger.event_type == "장례식",
-                    Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end,
+                    Ledger.event_date >= last_month_start.date(),
+                    Ledger.event_date <= last_month_end.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.amount),
                 else_=0
@@ -188,7 +188,7 @@ async def get_quick_stats(
             func.count(case(
                 (and_(
                     Ledger.event_type != "장례식",
-                    Ledger.created_at >= this_month_start,
+                    Ledger.event_date >= this_month_start.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.id),
                 else_=None
@@ -196,8 +196,8 @@ async def get_quick_stats(
             func.count(case(
                 (and_(
                     Ledger.event_type != "장례식",
-                    Ledger.created_at >= last_month_start,
-                    Ledger.created_at <= last_month_end,
+                    Ledger.event_date >= last_month_start.date(),
+                    Ledger.event_date <= last_month_end.date(),
                     Ledger.entry_type == "given"
                 ), Ledger.id),
                 else_=None
@@ -279,7 +279,7 @@ async def get_recent_ledgers(
         # 최근 장부 3개 조회 (Ledger 모델에서 직접 조회)
         recent_ledgers = db.query(Ledger).filter(
             Ledger.user_id == user_id
-        ).order_by(Ledger.created_at.desc()).limit(3).all()
+        ).order_by(Ledger.event_date.desc()).limit(3).all()
         
         ledgers_data = []
         for ledger in recent_ledgers:
