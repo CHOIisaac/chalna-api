@@ -38,7 +38,7 @@ async def get_monthly_stats(
         # 축의금 월별 통계 조회 (given/received)
         for entry_type in ["given", "received"]:
             wedding_stats = db.query(
-                extract('month', Ledger.created_at).label('month'),
+                extract('month', Ledger.event_date).label('month'),
                 func.sum(Ledger.amount).label('amount')
             ).filter(
                 and_(
@@ -47,9 +47,9 @@ async def get_monthly_stats(
                     Ledger.event_type != "장례식"  # 축의금 (장례식 제외)
                 )
             ).group_by(
-                extract('month', Ledger.created_at)
+                extract('month', Ledger.event_date)
             ).order_by(
-                extract('month', Ledger.created_at)
+                extract('month', Ledger.event_date)
             ).all()
             
             result["wedding"][entry_type] = format_monthly_data(wedding_stats)
@@ -57,7 +57,7 @@ async def get_monthly_stats(
         # 조의금 월별 통계 조회 (given/received)
         for entry_type in ["given", "received"]:
             condolence_stats = db.query(
-                extract('month', Ledger.created_at).label('month'),
+                extract('month', Ledger.event_date).label('month'),
                 func.sum(Ledger.amount).label('amount')
             ).filter(
                 and_(
@@ -66,28 +66,28 @@ async def get_monthly_stats(
                     Ledger.event_type == "장례식"  # 조의금 (장례식만)
                 )
             ).group_by(
-                extract('month', Ledger.created_at)
+                extract('month', Ledger.event_date)
             ).order_by(
-                extract('month', Ledger.created_at)
+                extract('month', Ledger.event_date)
             ).all()
             
             result["condolence"][entry_type] = format_monthly_data(condolence_stats)
         
         # 연도별 전체 통계 조회 (실제 데이터가 있는 연도만)
         year_stats_query = db.query(
-            extract('year', Ledger.created_at).label('year'),
-            extract('month', Ledger.created_at).label('month'),
+            extract('year', Ledger.event_date).label('year'),
+            extract('month', Ledger.event_date).label('month'),
             Ledger.entry_type,
             func.sum(Ledger.amount).label('amount')
         ).filter(
             Ledger.user_id == user_id
         ).group_by(
-            extract('year', Ledger.created_at),
-            extract('month', Ledger.created_at),
+            extract('year', Ledger.event_date),
+            extract('month', Ledger.event_date),
             Ledger.entry_type
         ).order_by(
-            extract('year', Ledger.created_at),
-            extract('month', Ledger.created_at)
+            extract('year', Ledger.event_date),
+            extract('month', Ledger.event_date)
         ).all()
         
         # 연도별 데이터 구성
