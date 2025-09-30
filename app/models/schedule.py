@@ -48,6 +48,8 @@ class Schedule(Base):
             "title": self.title,
             "location": self.location,
             "event_type": self.event_type,
+            "event_date": self.event_date,
+            "status": self.status,
             "memo": self.memo,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
