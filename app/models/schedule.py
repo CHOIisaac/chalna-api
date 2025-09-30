@@ -45,10 +45,8 @@ class Schedule(Base):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "event_id": self.event_id,
             "title": self.title,
             "location": self.location,
-            "description": self.description,
             "event_type": self.event_type,
             "memo": self.memo,
             "created_at": self.created_at.isoformat() if self.created_at else None,
@@ -66,11 +64,6 @@ class Schedule(Base):
         from zoneinfo import ZoneInfo
         naive_datetime = datetime.combine(self.event_date, self.event_time)
         return naive_datetime.replace(tzinfo=ZoneInfo('Asia/Seoul'))
-    
-    @property  
-    def start_datetime_utc(self):
-        """UTC 기준 일정 시작 시간"""
-        return self.start_datetime_kst.astimezone(ZoneInfo('UTC'))
 
     @property
     def is_upcoming(self):
