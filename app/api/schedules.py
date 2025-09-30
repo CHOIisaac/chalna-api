@@ -2,12 +2,12 @@
 Schedule API - 경조사 일정 관리 (MVP)
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func, extract
+from sqlalchemy import or_, func, extract, and_, case
 
 from app.core.constants import StatusType
 from app.core.database import get_db
@@ -166,9 +166,7 @@ def get_schedules(
         db: Session = Depends(get_db),
 ):
     """일정 목록 조회 - 필터링 완전 지원"""
-    print(status)
-    print(event_type)
-    print(sort_by)
+
     # 기본 쿼리 (user 관계 로딩 불필요 - 성능 최적화)
     query = (
         db.query(Schedule)
@@ -205,6 +203,27 @@ def get_schedules(
     total_count = query.count()
     schedules = query.offset(skip).limit(limit).all()
 
+    # 이번 달 통계 계산 (최적화: 단일 쿼리)
+    today = date.today()
+    this_month_start = date(today.year, today.month, 1)
+    
+    # 단일 쿼리로 모든 통계 계산
+    stats_result = db.query(
+        func.count(Schedule.id).label('total_count'),
+        func.sum(case(
+            (Schedule.status == StatusType.UPCOMING, 1),
+            else_=0
+        )).label('upcoming_count')
+    ).filter(
+        and_(
+            Schedule.user_id == current_user_id,
+            Schedule.event_date >= this_month_start
+        )
+    ).first()
+    
+    this_month_total_count = stats_result.total_count or 0
+    this_month_upcoming_count = stats_result.upcoming_count or 0
+
     return {
         "success": True,
         "data": schedules,  # ✅ 직접 반환 (최고 성능)
@@ -219,6 +238,10 @@ def get_schedules(
                 "sort_by": sort_by,
                 "search": search
             }
+        },
+        "this_month_stats": {
+            "this_month_total_count": this_month_total_count,
+            "this_month_upcoming_count": this_month_upcoming_count
         }
     }
 
