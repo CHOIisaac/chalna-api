@@ -52,7 +52,7 @@ def create_ledger(
 def get_ledgers(
         # 기본 파라미터
         skip: int = Query(0, ge=0, description="건너뛸 항목 수"),
-        limit: int = Query(100, ge=1, le=100, description="가져올 항목 수"),
+        limit: int = Query(10, ge=1, le=100, description="가져올 항목 수"),
 
         # 필터링 파라미터 (프론트엔드 필터와 매칭)
         entry_type: Optional[str] = Query(None, description="기록 타입: given(나눔), received(받음)"),
@@ -69,6 +69,8 @@ def get_ledgers(
         db: Session = Depends(get_db),
 ):
     """장부 목록 조회 - 통합 필터링 및 검색"""
+    print(skip)
+    print(limit)
     print(event_type)
     print(entry_type)
     print(sort_by)

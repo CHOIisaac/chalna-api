@@ -154,7 +154,7 @@ def delete_schedule(
 def get_schedules(
         # 기본 파라미터
         skip: int = Query(0, ge=0, description="건너뛸 항목 수"),
-        limit: int = Query(100, ge=1, le=100, description="가져올 항목 수"),
+        limit: int = Query(10, ge=1, le=100, description="가져올 항목 수"),
 
         # 필터링 파라미터 (프론트엔드 필터와 매칭)
         status: Optional[str] = Query(None, description="상태: upcoming, completed"),
