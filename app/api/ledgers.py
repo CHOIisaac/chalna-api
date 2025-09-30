@@ -1,11 +1,11 @@
 """
 Ledger API - 경조사비 수입지출 장부 관리
 """
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_, case
 from sqlalchemy.orm import Session
 
 from app.core.constants import EntryType
@@ -69,12 +69,7 @@ def get_ledgers(
         db: Session = Depends(get_db),
 ):
     """장부 목록 조회 - 통합 필터링 및 검색"""
-    print(skip)
-    print(limit)
-    print(event_type)
-    print(entry_type)
-    print(sort_by)
-    print(relationship_type)
+
     # 기본 쿼리
     query = db.query(Ledger).filter(Ledger.user_id == current_user_id)
 
@@ -119,6 +114,32 @@ def get_ledgers(
     total_count = query.count()
     ledgers = query.offset(skip).limit(limit).all()
 
+    # 이번 달 통계 계산 (최적화: 단일 쿼리)
+    today = date.today()
+    this_month_start = date(today.year, today.month, 1)
+    
+    # 단일 쿼리로 모든 통계 계산
+    stats_result = db.query(
+        func.count(Ledger.id).label('total_count'),
+        func.sum(case(
+            (Ledger.entry_type == EntryType.GIVEN, Ledger.amount),
+            else_=0
+        )).label('total_given'),
+        func.sum(case(
+            (Ledger.entry_type == EntryType.RECEIVED, Ledger.amount),
+            else_=0
+        )).label('total_received')
+    ).filter(
+        and_(
+            Ledger.user_id == current_user_id,
+            Ledger.event_date >= this_month_start
+        )
+    ).first()
+    
+    this_month_total_count = stats_result.total_count or 0
+    this_month_total_given = stats_result.total_given or 0
+    this_month_total_received = stats_result.total_received or 0
+
     return {
         "success": True,
         "data": ledgers,  # ✅ 직접 반환 (최고 성능)
@@ -134,6 +155,11 @@ def get_ledgers(
                 "event_type": event_type,
                 "relationship_type": relationship_type,
             }
+        },
+        "this_month_stats": {
+            "this_month_total_count": this_month_total_count,
+            "this_month_total_given": this_month_total_given,
+            "this_month_total_received": this_month_total_received
         }
     }
 
