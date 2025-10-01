@@ -12,6 +12,7 @@ from app.models.notification import Notification
 from app.models.user import User
 from app.models.schedule import Schedule
 from app.models.ledger import Ledger
+from app.core.firebase_config import get_firebase_service
 
 
 class NotificationService:
@@ -19,6 +20,7 @@ class NotificationService:
     
     def __init__(self, db: Session):
         self.db = db
+        self.firebase = get_firebase_service()
     
     def create_notification(
         self,
@@ -45,40 +47,48 @@ class NotificationService:
         self.db.commit()
         self.db.refresh(notification)
         
-        # Firebase 알림 전송 (실제 구현 시)
-        # self._send_firebase_notification(notification)
+        # Firebase 알림 전송
+        self._send_firebase_notification(notification)
         
         return notification
     
     def create_schedule_reminder(self, schedule: Schedule) -> Optional[Notification]:
         """일정 알림 생성"""
-        if not schedule.user.should_receive_notifications():
+        if not schedule.user.should_receive_schedule_notifications():
             return None
         
-        # 알림 시간 계산
-        notification_time = schedule.user.get_notification_time(schedule.start_datetime_kst)
-        if not notification_time:
-            return None
-        
-        # 현재 시간이 알림 시간보다 이전이면 알림 생성
-        if datetime.now() < notification_time:
-            title = f"일정 알림: {schedule.event_name}"
-            message = f"{schedule.event_name} 일정이 {schedule.start_datetime_kst.strftime('%m월 %d일 %H:%M')}에 예정되어 있습니다."
+        # 알림 시간 계산 (event_date와 event_time을 datetime으로 결합)
+        if schedule.event_date and schedule.event_time:
+            from datetime import datetime, time
+            schedule_datetime = datetime.combine(schedule.event_date, schedule.event_time)
+            notification_time = schedule.user.get_notification_time(schedule_datetime)
             
-            return self.create_notification(
-                user_id=schedule.user_id,
-                title=title,
-                message=message,
-                notification_type="schedule",
-                event_date=schedule.event_date,
-                event_time=schedule.event_time,
-                location=schedule.location
-            )
+            if not notification_time:
+                return None
+            
+            # 현재 시간이 알림 시간보다 이전이면 알림 생성
+            if datetime.now() < notification_time:
+                title = f"일정 알림: {schedule.title}"
+                message = f"{schedule.title} 일정이 {schedule_datetime.strftime('%m월 %d일 %H:%M')}에 예정되어 있습니다."
+                
+                return self.create_notification(
+                    user_id=schedule.user_id,
+                    title=title,
+                    message=message,
+                    notification_type="schedule",
+                    event_date=schedule.event_date,
+                    event_time=schedule.event_time,
+                    location=schedule.location
+                )
         
         return None
     
-    def create_ledger_notification(self, ledger: Ledger) -> Notification:
+    def create_ledger_notification(self, ledger: Ledger) -> Optional[Notification]:
         """장부 알림 생성"""
+        # 사용자가 장부 알림을 받도록 설정했는지 확인
+        if not ledger.user.should_receive_notifications():
+            return None
+            
         entry_type = "받음" if ledger.entry_type == "received" else "나눔"
         event_type = ledger.event_type or "기타"
         
@@ -98,8 +108,13 @@ class NotificationService:
         user_id: int,
         title: str,
         message: str
-    ) -> Notification:
+    ) -> Optional[Notification]:
         """시스템 알림 생성"""
+        # 사용자 조회 및 알림 설정 확인
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user or not user.should_receive_notifications():
+            return None
+            
         return self.create_notification(
             user_id=user_id,
             title=title,
@@ -171,12 +186,39 @@ class NotificationService:
         return deleted_count
     
     def _send_firebase_notification(self, notification: Notification):
-        """Firebase 알림 전송 (실제 구현 필요)"""
-        # TODO: Firebase Admin SDK를 사용한 실제 알림 전송 구현
-        # 1. 사용자의 FCM 토큰 조회
-        # 2. Firebase Admin SDK로 알림 전송
-        # 3. 전송 결과 로깅
-        pass
+        """Firebase 알림 전송"""
+        try:
+            # 1. 사용자의 FCM 토큰 조회
+            user = self.db.query(User).filter(User.id == notification.user_id).first()
+            
+            if not user or not user.fcm_token:
+                print(f"⚠️ 사용자 {notification.user_id}의 FCM 토큰이 없습니다.")
+                return
+            
+            # 2. Firebase Admin SDK로 알림 전송
+            data = {
+                "notification_id": str(notification.id),
+                "type": notification.event_type,
+                "event_date": notification.event_date.isoformat() if notification.event_date else "",
+                "event_time": notification.event_time.isoformat() if notification.event_time else "",
+                "location": notification.location or ""
+            }
+            
+            success = self.firebase.send_notification(
+                token=user.fcm_token,
+                title=notification.title,
+                body=notification.message,
+                data=data
+            )
+            
+            # 3. 전송 결과 로깅
+            if success:
+                print(f"✅ 알림 전송 성공: 사용자 {notification.user_id}, 알림 ID {notification.id}")
+            else:
+                print(f"❌ 알림 전송 실패: 사용자 {notification.user_id}, 알림 ID {notification.id}")
+                
+        except Exception as e:
+            print(f"❌ Firebase 알림 전송 중 오류: {e}")
     
     def get_notification_stats(self, user_id: int) -> Dict[str, Any]:
         """알림 통계 조회"""

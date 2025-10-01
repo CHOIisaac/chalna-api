@@ -236,3 +236,44 @@ async def register_fcm_token(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"FCM 토큰 등록 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.post("/test", summary="테스트 알림 전송", description="FCM 푸시알림 테스트를 위한 API")
+async def send_test_notification(
+    title: str = "테스트 알림",
+    message: str = "FCM 푸시알림이 정상적으로 작동합니다!",
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    테스트 알림 전송
+    
+    - **title**: 알림 제목 (기본값: "테스트 알림")
+    - **message**: 알림 메시지 (기본값: "FCM 푸시알림이 정상적으로 작동합니다!")
+    """
+    try:
+        from app.services.notification_service import NotificationService
+        
+        # NotificationService를 사용하여 테스트 알림 생성 및 전송
+        notification_service = NotificationService(db)
+        
+        notification = notification_service.create_notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            notification_type="system"
+        )
+        
+        return {
+            "success": True,
+            "data": {
+                "notification_id": notification.id,
+                "title": notification.title,
+                "message": notification.message,
+                "sent_at": notification.created_at.isoformat() if notification.created_at else None
+            },
+            "message": "테스트 알림이 전송되었습니다"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"테스트 알림 전송 중 오류가 발생했습니다: {str(e)}")
