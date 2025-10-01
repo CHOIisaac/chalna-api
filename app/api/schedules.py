@@ -210,22 +210,43 @@ def get_schedules(
     today = date.today()
     this_month_start = date(today.year, today.month, 1)
     
+    # 다음 달 시작일 계산 (이번 달 끝을 정확히 구하기 위해)
+    if today.month == 12:
+        next_month_start = date(today.year + 1, 1, 1)
+    else:
+        next_month_start = date(today.year, today.month + 1, 1)
+    
     # 단일 쿼리로 모든 통계 계산
     stats_result = db.query(
-        func.count(Schedule.id).label('total_count'),
+        # 이번 달 전체 일정 개수
+        func.sum(case(
+            (and_(
+                Schedule.event_date >= this_month_start,
+                Schedule.event_date < next_month_start
+            ), 1),
+            else_=0
+        )).label('this_month_total'),
+        # 이번 달 예정된 일정 개수
+        func.sum(case(
+            (and_(
+                Schedule.event_date >= this_month_start,
+                Schedule.event_date < next_month_start,
+                Schedule.status == StatusType.UPCOMING
+            ), 1),
+            else_=0
+        )).label('this_month_upcoming'),
+        # 전체 예정된 일정 개수
         func.sum(case(
             (Schedule.status == StatusType.UPCOMING, 1),
             else_=0
-        )).label('upcoming_count')
+        )).label('total_upcoming')
     ).filter(
-        and_(
-            Schedule.user_id == current_user_id,
-            Schedule.event_date >= this_month_start
-        )
+        Schedule.user_id == current_user_id
     ).first()
     
-    this_month_total_count = stats_result.total_count or 0
-    this_month_upcoming_count = stats_result.upcoming_count or 0
+    this_month_total_count = int(stats_result.this_month_total or 0)
+    this_month_upcoming_count = int(stats_result.this_month_upcoming or 0)
+    total_upcoming_count = int(stats_result.total_upcoming or 0)
 
     return {
         "success": True,
@@ -244,7 +265,8 @@ def get_schedules(
         },
         "this_month_stats": {
             "this_month_total_count": this_month_total_count,
-            "this_month_upcoming_count": this_month_upcoming_count
+            "this_month_upcoming_count": this_month_upcoming_count,
+            "total_count": total_upcoming_count
         }
     }
 
