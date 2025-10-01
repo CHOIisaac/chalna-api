@@ -39,7 +39,8 @@ async def get_monthly_stats(
         this_month_end = (this_month_start + timedelta(days=32)).replace(day=1) - timedelta(seconds=1)
         week_start = now - timedelta(days=now.weekday())
         week_end = week_start + timedelta(days=6)
-        
+        print(week_start.date())
+        print(week_end)
         # 최적화: 단일 쿼리로 이번 달/전월 총액 조회 (나눈 것만) - 이벤트 날짜 기준
         amount_stats = db.query(
             func.sum(case(
@@ -96,7 +97,8 @@ async def get_monthly_stats(
             func.count(case(
                 (and_(
                     Schedule.event_date >= week_start.date(),
-                    Schedule.event_date <= week_end.date()
+                    Schedule.event_date <= week_end.date(),
+                    Schedule.status == "upcoming"
                 ), Schedule.id),
                 else_=None
             )).label('this_week_total')
