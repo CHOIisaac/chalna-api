@@ -10,7 +10,7 @@ from sqlalchemy import desc, func
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.notification import Notification
-from app.schemas.notification import NotificationListResponse, NotificationListData, NotificationResponse
+from app.schemas.notification import NotificationListResponse, NotificationListData, NotificationResponse, NotificationUpdate
 
 router = APIRouter()
 
@@ -79,9 +79,10 @@ async def get_notifications(
         raise HTTPException(status_code=500, detail=f"알림 목록 조회 중 오류가 발생했습니다: {str(e)}")
 
 
-@router.patch("/{notification_id}/read", summary="알림 읽음 처리", description="특정 알림을 읽음으로 처리합니다")
+@router.patch("/{notification_id}/read", summary="알림 읽음 처리", description="특정 알림의 읽음 상태를 업데이트합니다")
 async def mark_notification_read(
     notification_id: int,
+    update_data: NotificationUpdate,
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -89,6 +90,7 @@ async def mark_notification_read(
     알림 읽음 처리
     
     - **notification_id**: 알림 ID
+    - **read**: 읽음 상태 (true: 읽음, false: 안읽음)
     """
     try:
         # 알림 조회
@@ -101,13 +103,14 @@ async def mark_notification_read(
             raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다")
         
         # 읽음 상태 업데이트
-        notification.read = True
+        notification.read = update_data.read
         db.commit()
         db.refresh(notification)
         
+        status_text = "읽음" if update_data.read else "안읽음"
         return {
             "success": True,
-            "message": "알림이 읽음으로 처리되었습니다"
+            "message": f"알림이 {status_text}으로 처리되었습니다"
         }
         
     except HTTPException:

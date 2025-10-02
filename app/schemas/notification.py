@@ -24,7 +24,7 @@ class NotificationCreate(NotificationBase):
 
 class NotificationUpdate(BaseModel):
     """알림 수정 스키마"""
-    read: Optional[bool] = Field(None, description="읽음 상태")
+    read: bool = Field(..., description="읽음 상태")
 
 
 class NotificationResponse(NotificationBase):
