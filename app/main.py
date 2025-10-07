@@ -18,6 +18,7 @@ from app.api import (
     users_router,
     user_settings_router,
 )
+from app.api.excel_export import router as excel_export_router
 
 app = FastAPI(
     title="찰나(Chalna) API",
@@ -56,6 +57,7 @@ app = FastAPI(
         {"name": "일정 관리", "description": "경조사 일정 관리"},
         {"name": "알림 관리", "description": "알림 목록 조회 및 관리"},
         {"name": "통계", "description": "경조사비 통계 및 분석"},
+        {"name": "엑셀 내보내기", "description": "통계 데이터 엑셀 파일 내보내기"},
     ],
 )
 
@@ -123,7 +125,8 @@ def custom_openapi():
         "/api/v1/ledgers/",
         "/api/v1/schedules/",
         "/api/v1/notifications/",
-        "/api/v1/stats/"
+        "/api/v1/stats/",
+        "/api/v1/excel/"
     ]
     
     for path in openapi_schema["paths"]:
@@ -148,4 +151,5 @@ app.include_router(ledgers_router, prefix="/api/v1/ledgers", tags=["장부 관�
 app.include_router(schedules_router, prefix="/api/v1/schedules", tags=["일정 관리"])
 app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["알림 관리"])
 app.include_router(stats_router, prefix="/api/v1/stats", tags=["통계"])
+app.include_router(excel_export_router, prefix="/api/v1/excel", tags=["엑셀 내보내기"])
 app.include_router(user_settings_router, prefix="/api/settings", tags=["설정 관리"])
