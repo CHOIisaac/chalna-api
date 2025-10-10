@@ -37,6 +37,8 @@ def create_schedule(
     db: Session = Depends(get_db),
 ):
     """새로운 일정 생성"""
+    from zoneinfo import ZoneInfo
+    from app.tasks.notification_tasks import schedule_notifications_for_event
 
     # 기본값 설정
     schedule_data = schedule.dict()
@@ -51,6 +53,23 @@ def create_schedule(
     db.add(db_schedule)
     db.commit()
     db.refresh(db_schedule)
+
+    # 🎯 이벤트 기반 알림 예약 (일정이 upcoming일 경우에만)
+    if db_schedule.status == StatusType.UPCOMING:
+        try:
+            schedule_datetime = datetime.combine(
+                db_schedule.event_date,
+                db_schedule.event_time,
+                tzinfo=ZoneInfo('Asia/Seoul')
+            )
+            schedule_notifications_for_event(
+                schedule_id=db_schedule.id,
+                schedule_datetime=schedule_datetime,
+                user_id=current_user_id
+            )
+        except Exception as e:
+            # 알림 예약 실패해도 일정 생성은 성공으로 처리
+            print(f"⚠️ 알림 예약 실패: {e}")
 
     return {
         "success": True,
@@ -98,6 +117,8 @@ def update_schedule(
         db: Session = Depends(get_db),
 ):
     """일정 수정"""
+    from zoneinfo import ZoneInfo
+    from app.tasks.notification_tasks import schedule_notifications_for_event
 
     db_schedule = (
         db.query(Schedule)
@@ -110,12 +131,37 @@ def update_schedule(
 
     # 업데이트 데이터 적용
     update_data = schedule_update.dict(exclude_unset=True)
+    
+    # 날짜나 시간이 변경되었는지 확인
+    date_time_changed = (
+        'event_date' in update_data or 
+        'event_time' in update_data or
+        'status' in update_data
+    )
 
     for field, value in update_data.items():
         setattr(db_schedule, field, value)
 
     db.commit()
     db.refresh(db_schedule)
+
+    # 🎯 날짜/시간이 변경되었고 upcoming 상태면 알림 재예약
+    if date_time_changed and db_schedule.status == StatusType.UPCOMING:
+        try:
+            schedule_datetime = datetime.combine(
+                db_schedule.event_date,
+                db_schedule.event_time,
+                tzinfo=ZoneInfo('Asia/Seoul')
+            )
+            # 기존 알림은 자동으로 무시됨 (send_scheduled_notification에서 체크)
+            schedule_notifications_for_event(
+                schedule_id=db_schedule.id,
+                schedule_datetime=schedule_datetime,
+                user_id=current_user_id
+            )
+        except Exception as e:
+            # 알림 예약 실패해도 일정 수정은 성공으로 처리
+            print(f"⚠️ 알림 재예약 실패: {e}")
 
     return {
         "success": True,
