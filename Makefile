@@ -1,6 +1,6 @@
 # 🚀 찰나(Chalna) API - 개발 편의 명령어
 
-.PHONY: help install dev prod test lint format clean db-create db-reset db-info db-test docker-build docker-run docker-dev docker-stop docker-clean docker-logs
+.PHONY: help install dev prod test lint format clean db-create db-reset db-info db-test docker-build docker-run docker-dev docker-stop docker-clean docker-logs celery-worker celery-beat celery-all celery-flower celery-stop
 
 help:  ## 📋 사용 가능한 명령어 표시
 	@echo "🎯 찰나(Chalna) API 개발 명령어"
@@ -98,5 +98,34 @@ dev-local:  ## 🚀 로컬 개발 환경 (인프라는 도커, 서버는 로컬)
 	@sleep 10
 	@echo "🚀 로컬 서버 시작..."
 	uv run fastapi dev main.py
+
+# 🔔 Celery 작업 큐 관리
+celery-worker:  ## 🚀 Celery Worker 실행
+	./start_celery.sh worker
+
+celery-beat:  ## ⏰ Celery Beat 스케줄러 실행
+	./start_celery.sh beat
+
+celery-all:  ## 🔄 Celery Worker + Beat 모두 실행
+	./start_celery.sh all
+
+celery-flower:  ## 🌸 Celery Flower 모니터링 대시보드 실행
+	./start_celery.sh flower
+
+celery-stop:  ## ⏹️ 실행 중인 Celery 프로세스 중지
+	@echo "🛑 Celery 프로세스 중지 중..."
+	@pkill -f "celery.*worker" || true
+	@pkill -f "celery.*beat" || true
+	@pkill -f "celery.*flower" || true
+	@echo "✅ Celery 프로세스 중지 완료"
+
+redis-start:  ## 🔴 Redis 시작 (Docker)
+	docker compose -f docker-compose.local.yml up redis -d
+
+redis-stop:  ## ⏹️ Redis 중지
+	docker compose -f docker-compose.local.yml stop redis
+
+redis-cli:  ## 🔧 Redis CLI 접속
+	redis-cli
 
 .DEFAULT_GOAL := help
