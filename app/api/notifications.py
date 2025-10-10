@@ -2,7 +2,7 @@
 알림 API 엔드포인트
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
@@ -11,6 +11,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.notification import Notification
 from app.schemas.notification import NotificationListResponse, NotificationListData, NotificationResponse, NotificationUpdate
+from app.models.user import User
 
 router = APIRouter()
 
@@ -80,6 +81,7 @@ async def get_notifications(
 
 
 @router.patch("/{notification_id}/read", summary="알림 읽음 처리", description="특정 알림의 읽음 상태를 업데이트합니다")
+@router.put("/{notification_id}/read", summary="알림 읽음 처리", description="특정 알림의 읽음 상태를 업데이트합니다")
 async def mark_notification_read(
     notification_id: int,
     update_data: NotificationUpdate,
@@ -280,3 +282,7 @@ async def send_test_notification(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"테스트 알림 전송 중 오류가 발생했습니다: {str(e)}")
+
+
+# ❌ 기존 Polling 방식 수동 트리거 API 삭제됨
+# ✅ 이벤트 기반 방식으로 변경 - 일정 생성/수정 시 자동으로 알림 예약됨
