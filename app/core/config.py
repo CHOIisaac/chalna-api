@@ -52,6 +52,46 @@ class Settings(BaseSettings):
         # 개발/프로덕션 모두 PostgreSQL 사용
         return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}:{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
 
+    # Redis 설정
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+
+    # Celery 설정
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
+    CELERY_TASK_SERIALIZER: str = "json"
+    CELERY_RESULT_SERIALIZER: str = "json"
+    CELERY_ACCEPT_CONTENT: list[str] = ["json"]
+    CELERY_TIMEZONE: str = "Asia/Seoul"
+    CELERY_ENABLE_UTC: bool = False
+
+    # 알림 설정 - 스케줄 기반 알림 시간
+    SCHEDULE_NOTIFICATION_DAYS: list[int] = [3, 1]  # 3일 전, 1일 전
+    SCHEDULE_NOTIFICATION_HOURS: list[int] = [3]    # 3시간 전
+
+    @validator("CELERY_BROKER_URL", pre=True)
+    def assemble_celery_broker(cls, v: Optional[str], values: dict) -> str:
+        """Celery Broker URL 생성"""
+        if isinstance(v, str) and v.startswith("redis://"):
+            return v
+
+        redis_host = values.get("REDIS_HOST", "localhost")
+        redis_port = values.get("REDIS_PORT", 6379)
+        redis_db = values.get("REDIS_DB", 0)
+        return f"redis://{redis_host}:{redis_port}/{redis_db}"
+
+    @validator("CELERY_RESULT_BACKEND", pre=True)
+    def assemble_celery_result_backend(cls, v: Optional[str], values: dict) -> str:
+        """Celery Result Backend URL 생성"""
+        if isinstance(v, str) and v.startswith("redis://"):
+            return v
+
+        redis_host = values.get("REDIS_HOST", "localhost")
+        redis_port = values.get("REDIS_PORT", 6379)
+        redis_db = values.get("REDIS_DB", 0)
+        return f"redis://{redis_host}:{redis_port}/{redis_db}"
+
     # 🌐 서버 설정
     ENVIRONMENT: str = "development"
     HOST: str = "0.0.0.0"
