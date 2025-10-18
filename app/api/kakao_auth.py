@@ -51,14 +51,20 @@ async def kakao_login_mobile(
     모바일 앱에서 카카오 SDK로 로그인 후 받은 액세스 토큰을 사용합니다.
     보안을 위해 POST body로 토큰을 전송합니다.
     """
+    import traceback
+    
     try:
         if not login_data.access_token:
             raise HTTPException(status_code=400, detail="카카오 액세스 토큰이 필요합니다")
+        
+        print(f"🔐 카카오 로그인 시도 - 토큰 길이: {len(login_data.access_token)}")
         
         service = KakaoAuthService(db)
         
         # 모바일 로그인: 액세스 토큰 직접 사용
         result = await service.login_with_kakao_token(login_data.access_token)
+        
+        print(f"✅ 카카오 로그인 성공 - User ID: {result['user']['id']}")
         
         # 카카오 정보를 Pydantic 모델로 변환
         kakao_info = KakaoUserInfo.from_kakao_data(result["kakao_info"])
@@ -75,6 +81,13 @@ async def kakao_login_mobile(
     except HTTPException:
         raise
     except Exception as e:
+        # 🔥 상세한 에러 로깅
+        error_trace = traceback.format_exc()
+        print(f"❌ 카카오 로그인 실패:")
+        print(f"   에러 타입: {type(e).__name__}")
+        print(f"   에러 메시지: {str(e)}")
+        print(f"   상세 트레이스:\n{error_trace}")
+        
         raise HTTPException(status_code=500, detail=f"카카오 로그인 실패: {str(e)}")
 
 

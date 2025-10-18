@@ -9,6 +9,7 @@ from sqlalchemy import or_
 
 from app.core.config import settings
 from app.models.user import User
+from app.models.user_settings import UserSettings
 from app.core.security import create_access_token
 
 
@@ -112,6 +113,17 @@ class KakaoAuthService:
         )
         
         self.db.add(new_user)
+        self.db.flush()  # ID 생성을 위해 flush
+        
+        # 🔧 UserSettings 자동 생성 (카카오 로그인 사용자도 기본 설정 필요)
+        user_settings = UserSettings(
+            user_id=new_user.id,
+            notifications_enabled=True,
+            event_reminders=True,
+            reminder_hours_before=24
+        )
+        self.db.add(user_settings)
+        
         self.db.commit()
         self.db.refresh(new_user)
         
@@ -157,13 +169,19 @@ class KakaoAuthService:
         """카카오 액세스 토큰으로 직접 로그인 (모바일 앱용)"""
         try:
             # 1. 카카오 사용자 정보 조회
+            print(f"📡 카카오 API 호출 시작...")
             kakao_user_info = await self.get_kakao_user_info(kakao_access_token)
+            print(f"✅ 카카오 사용자 정보 조회 성공 - ID: {kakao_user_info.get('id')}")
             
             # 2. 사용자 찾기 또는 생성
+            print(f"👤 사용자 찾기 또는 생성 중...")
             user = self.find_or_create_user(kakao_user_info)
+            print(f"✅ 사용자 처리 완료 - User ID: {user.id}, Username: {user.username}")
             
             # 3. JWT 토큰 생성
+            print(f"🔑 JWT 토큰 생성 중...")
             jwt_token = create_access_token(data={"sub": str(user.id)})
+            print(f"✅ JWT 토큰 생성 완료")
             
             return {
                 "access_token": jwt_token,
@@ -180,6 +198,7 @@ class KakaoAuthService:
             }
             
         except Exception as e:
+            print(f"❌ login_with_kakao_token 에러: {type(e).__name__} - {str(e)}")
             raise Exception(f"카카오 로그인 실패: {str(e)}")
     
     def get_kakao_login_url(self) -> str:
